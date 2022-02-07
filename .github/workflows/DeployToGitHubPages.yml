@@ -17,19 +17,13 @@ jobs:
     - name: Publish .NET Core Project
       run: dotnet publish SwissKnife.Serverless/SwissKnife.Serverless.csproj -c Release -o release
     
-      # Changes the base-tag in index.html from '/' to 'SwissKnife' to match GitHub Pages repository subdirectory
-    - name: Change base-tag in index.html from / to SwissKnife
-      run: sed -i 's/<base href="\/" \/>/<base href="\/SwissKnife\/" \/>/g' release/wwwroot/index.html
-    
-      # Copy index.html to 404.html to serve the same file when a file is not found
-    - name: Copy index.html to 404.html
-      run: cp release/wwwroot/index.html release/wwwroot/404.html
+    - name: Prepare for GitHub Pages environment
+      run: |
+        # Change <base> tag in .html files from '/' to '/SwissKnife/' to match GitHub Pages repository subdirectory
+        sed -i 's/<base href="\/" \/>/<base href="\/SwissKnife\/" \/>/g' release/wwwroot/index.html
+        # Copy index.html to 404.html to serve the same file when a file is not found
+        cp release/wwwroot/index.html release/wwwroot/404.html
 
-      # Add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project.
-      # This allows files and folders starting with an underscore
-    - name: Add .nojekyll file
-      run: touch release/wwwroot/.nojekyll
-      
     - name: Deploy to GitHub Pages
       uses: JamesIves/github-pages-deploy-action@v4.2.3
       with:

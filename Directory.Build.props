@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>5</WarningLevel>
+    <RepositoryUrl>https://github.com/qrknx/SwissKnife</RepositoryUrl>
+  </PropertyGroup>
+</Project>
