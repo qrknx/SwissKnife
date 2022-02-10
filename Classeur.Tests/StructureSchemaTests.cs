@@ -10,7 +10,7 @@ public class StructureSchemaTests
     [Fact]
     public void Smoke_Empty()
     {
-        StructureSchema schema = new(IncoherentId.Generate(), Enumerable.Empty<StructureSchema.Change>());
+        StructureSchema schema = new(IncoherentId.Generate());
 
         Assert.Empty(schema.Changes);
         Assert.Equal(0, schema.Latest.Version);

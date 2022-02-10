@@ -2,11 +2,19 @@
 
 namespace Classeur.Core.CustomizableStructure;
 
-public class StructureSchema
+public class StructureSchema : IEntity<IncoherentId>, IEntity<string>
 {
     public readonly IncoherentId Id;
     public readonly ImmutableList<Change> Changes;
     public readonly StructureSchemaVersion Latest;
+
+    IncoherentId IEntity<IncoherentId>.Id => Id;
+
+    string IEntity<string>.Id => Id.ToString();
+
+    public StructureSchema(IncoherentId id) : this(id, ImmutableList<Change>.Empty)
+    {
+    }
 
     public StructureSchema(IncoherentId id, IEnumerable<Change> changes)
         : this(id, changes.OrderBy(c => c.Version).ToImmutableList())
