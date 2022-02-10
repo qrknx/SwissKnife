@@ -61,9 +61,9 @@ public class StructureSchemaJsonConverterTests
 
             Add((new StructureSchema.Change[]
                  {
-                     new StructureSchema.FieldAdded(new(new("f1"), FieldType.String("abc", new FieldType.ConstraintsString(10))),
+                     new StructureSchema.FieldAdded(new(new("f1"), "F1", FieldType.String("abc", new FieldType.ConstraintsString(10))),
                          Version: 1),
-                     new StructureSchema.FieldAdded(new(new("f2"), FieldType.Int64(100, new FieldType.ConstraintsInt64(-100, 200))),
+                     new StructureSchema.FieldAdded(new(new("f2"), "F2", FieldType.Int64(100, new FieldType.ConstraintsInt64(-100, 200))),
                                                     Version: 1),
                      new StructureSchema.FieldRemoved(new("f1"), Version: 2),
                  },
@@ -77,6 +77,7 @@ public class StructureSchemaJsonConverterTests
                              ChangeType = "FieldAdded",
                              Version = 1,
                              Key = "f1",
+                             Label = "F1",
                              Type = new
                              {
                                  Id = 1,
@@ -92,6 +93,7 @@ public class StructureSchemaJsonConverterTests
                              ChangeType = "FieldAdded",
                              Version = 1,
                              Key = "f2",
+                             Label = "F2",
                              Type = new
                              {
                                  Id = 2,

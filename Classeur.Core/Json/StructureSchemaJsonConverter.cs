@@ -37,10 +37,14 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
                     reader.MoveIfEquals(nameof(FieldDescription.Key));
                     FieldKey keyAdded = JsonSerializer.Deserialize<FieldKey>(ref reader, options);
                     reader.Read();
+                    reader.MoveIfEquals(nameof(FieldDescription.Label));
+                    string label = reader.GetString() ?? throw new JsonException();
+                    reader.Read();
                     reader.MoveIfEquals(nameof(FieldDescription.Type));
                     FieldType typeAdded = JsonSerializer.Deserialize<FieldType>(ref reader, options);
                     reader.Read();
-                    changes.Add(new StructureSchema.FieldAdded(new FieldDescription(keyAdded, typeAdded), version));
+                    changes.Add(new StructureSchema.FieldAdded(new FieldDescription(keyAdded, label, typeAdded),
+                                                               version));
                     break;
 
                 case nameof(StructureSchema.FieldRemoved):
@@ -81,11 +85,12 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
             
             switch (change)
             {
-                case StructureSchema.FieldAdded {Field: {Key: var key, Type: var type}}:
+                case StructureSchema.FieldAdded {Field: {Key: var key, Label: var label, Type: var type}}:
                     writer.WriteString(ChangeTypeFieldName, nameof(StructureSchema.FieldAdded));
                     writer.WriteNumber(nameof(StructureSchema.Change.Version), change.Version);
                     writer.WritePropertyName(nameof(FieldDescription.Key));
                     JsonSerializer.Serialize(writer, key, options);
+                    writer.WriteString(nameof(FieldDescription.Label), label);
                     writer.WritePropertyName(nameof(FieldDescription.Type));
                     JsonSerializer.Serialize(writer, type, options);
                     break;
