@@ -9,6 +9,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SolutionItems", "SolutionIt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Classeur.Core", "Classeur.Core\Classeur.Core.csproj", "{DA472A09-C43D-4BEE-817D-42D1B5E75A38}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Classeur.Tests", "Classeur.Tests\Classeur.Tests.csproj", "{0FF4F259-A4E3-4368-96A3-CB588A9BA228}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		SolutionItems.projitems*{752adbe9-ee8c-4a9e-a0c1-bb8a85902aa1}*SharedItemsImports = 13
@@ -26,6 +28,10 @@ Global
 		{DA472A09-C43D-4BEE-817D-42D1B5E75A38}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA472A09-C43D-4BEE-817D-42D1B5E75A38}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DA472A09-C43D-4BEE-817D-42D1B5E75A38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FF4F259-A4E3-4368-96A3-CB588A9BA228}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FF4F259-A4E3-4368-96A3-CB588A9BA228}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FF4F259-A4E3-4368-96A3-CB588A9BA228}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FF4F259-A4E3-4368-96A3-CB588A9BA228}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
