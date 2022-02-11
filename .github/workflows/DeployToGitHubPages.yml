@@ -14,8 +14,13 @@ jobs:
       with:
         dotnet-version: 6.0.x
 
+    - name: Build and Test .NET Projects
+      run: |
+        dotnet build --configuration Release SwissKnife.sln
+        dotnet test --configuration Release --no-build SwissKnife.sln      
+
     - name: Publish .NET Core Project
-      run: dotnet publish SwissKnife.Serverless/SwissKnife.Serverless.csproj -c Release -o release
+      run: dotnet publish --configuration Release --output release --no-build SwissKnife.Serverless/SwissKnife.Serverless.csproj
     
     - name: Prepare for GitHub Pages environment
       run: |
