@@ -16,7 +16,7 @@ jobs:
 
     - name: Build and Test .NET Projects
       run: |
-        dotnet nuget add source https://nuget.pkg.github.com/qrknx/index.json --name GitHub-qrknx --username qrknx --password ${{ secrets.PACKAGES_TOKEN }}
+        dotnet nuget update source GitHub-qrknx --username qrknx --password ${{ secrets.PACKAGES_TOKEN }}
         dotnet build --configuration Release SwissKnife.sln
         dotnet test --configuration Release --no-build SwissKnife.sln      
 
