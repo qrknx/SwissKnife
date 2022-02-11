@@ -1,4 +1,3 @@
-using System.Linq;
 using Classeur.Core;
 using Classeur.Core.CustomizableStructure;
 using Xunit;

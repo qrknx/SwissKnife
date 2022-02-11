@@ -1,6 +1,14 @@
-﻿namespace Classeur.Core.CustomizableStructure;
+﻿using System.Text.RegularExpressions;
 
-public readonly record struct FieldKey(string Name)
+namespace Classeur.Core.CustomizableStructure;
+
+public readonly record struct FieldKey
 {
-    public static readonly FieldKey Empty = new("");
+    private static readonly Regex NameRegex = new(@"^[_\p{L}][_\w]{0,62}$", RegexOptions.Compiled);
+
+    public readonly string Name;
+
+    public FieldKey(string name) => Name = NameRegex.IsMatch(name)
+        ? name
+        : throw new ArgumentException();
 }
