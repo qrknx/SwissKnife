@@ -1,0 +1,171 @@
+﻿@using System.Text
+@using Blazorise;
+@using Microsoft.AspNetCore.Components
+@using Classeur.Core.CustomizableStructure
+
+<Modal @ref="_addFieldDialog">
+	<ModalContent Centered="true">
+		<ModalHeader>
+			<ModalTitle>Add field</ModalTitle>
+			<CloseButton />
+		</ModalHeader>
+		<ModalBody>
+			<Field>
+				<FieldLabel>Label</FieldLabel>
+				<TextEdit @bind-Text="Label" />
+			</Field>
+			<Field>
+				<FieldLabel>Type</FieldLabel>
+				<Select TValue="FieldTypeId" @bind-SelectedValue="_selectedField">
+					@foreach (FieldTypeId id in Enum.GetValues<FieldTypeId>())
+					{
+						<SelectItem Value="id">@id.ToString()</SelectItem>
+					}
+				</Select>
+			</Field>
+			@switch (_selectedField)
+			{
+				case FieldTypeId.String:
+					<Field>
+						<FieldLabel>Default</FieldLabel>
+						<TextEdit @bind-Text="@_newStringField.Default" />
+					</Field>
+					<Field>
+						<FieldLabel>Max length</FieldLabel>
+						<TextEdit @bind-Text="@_newStringField.MaxLength" />
+					</Field>
+					break;
+
+				case FieldTypeId.Int64:
+					<Field>
+						<FieldLabel>Default</FieldLabel>
+						<TextEdit @bind-Text="@_newInt64Field.Default" />
+					</Field>
+					<Field>
+						<FieldLabel>Min</FieldLabel>
+						<TextEdit @bind-Text="@_newInt64Field.Min" />
+					</Field>
+					<Field>
+						<FieldLabel>Max</FieldLabel>
+						<TextEdit @bind-Text="@_newInt64Field.Max" />
+					</Field>
+					break;
+
+				default:
+					throw new NotImplementedException();
+			}
+		</ModalBody>
+		<ModalFooter>
+			<Button Color="Color.Primary" Clicked="AddFieldAsync">Add</Button>
+		</ModalFooter>
+	</ModalContent>
+</Modal>
+
+@code {
+
+	private Modal? _addFieldDialog;
+
+	private FieldTypeId _selectedField = FieldTypeId.String;
+
+	private (string Label, string Default, string MaxLength) _newStringField
+		= ("", "", FieldType.ConstraintsString.Default.MaxLength.ToString());
+
+	private (string Label, string Default, string Min, string Max) _newInt64Field
+		= ("", "0", FieldType.ConstraintsInt64.Default.Min.ToString(), FieldType.ConstraintsInt64.Default.Max.ToString());
+
+	public Modal Modal => _addFieldDialog!;
+
+	private string Label
+	{
+		get => _selectedField switch
+		{
+			FieldTypeId.String => _newStringField.Label,
+			FieldTypeId.Int64 => _newInt64Field.Label,
+			_ => throw new NotImplementedException(),
+			};
+		set
+		{
+			switch (_selectedField)
+			{
+				case FieldTypeId.String:
+					_newStringField.Label = value;
+					break;
+
+				case FieldTypeId.Int64:
+					_newInt64Field.Label = value;
+					break;
+
+				case var _:
+					throw new NotImplementedException();
+			}
+		}
+	}
+
+	private FieldKey FieldKey
+	{
+		get
+		{
+			List<List<char>> chunks = new()
+			{
+				new(),
+			};
+
+			foreach (char c in Label)
+			{
+				if (c == '_' || char.IsLetterOrDigit(c))
+				{
+					chunks[^1].Add(char.ToLower(c));
+				}
+				else if (chunks[^1].Any())
+				{
+					chunks.Add(new());
+				}
+			}
+
+			if (!chunks[0].Any())
+			{
+				throw new Exception();
+			}
+
+			StringBuilder stringBuilder = new(!char.IsDigit(chunks[0][0]) ? "" : "_",
+			                                  capacity: chunks.Sum(c => c.Count) + chunks.Count);
+
+			stringBuilder.AppendJoin("", chunks[0]);
+
+			foreach (List<char> chunk in chunks)
+			{
+				stringBuilder.Append('_').AppendJoin("", chunk);
+			}
+
+			return new FieldKey(stringBuilder.ToString());
+		}
+	}
+
+	[Parameter]
+	public StructureSchema Schema { get; set; } = null!;
+
+	[Parameter]
+	public EventCallback<StructureSchema> SchemaChanged { get; set; }
+
+	private async Task AddFieldAsync()
+	{
+		Schema = Schema.AddFields(_selectedField switch
+			                          {
+			                          FieldTypeId.String => new FieldDescription(FieldKey,
+			                                                                     Label,
+			                                                                     FieldType.String(@default: _newStringField.Default,
+			                                                                                      new(MaxLength: int.Parse(_newStringField.MaxLength)))),
+	    
+			                          FieldTypeId.Int64 => new FieldDescription(FieldKey,
+			                                                                    Label,
+			                                                                    FieldType.Int64(@default: long.Parse(_newInt64Field.Default),
+			                                                                                    new(Min: long.Parse(_newInt64Field.Min),
+			                                                                                        Max: long.Parse(_newInt64Field.Max)))),
+	    
+			                          _ => throw new NotImplementedException(),
+			                          });
+
+		await SchemaChanged.InvokeAsync(Schema);
+	}
+
+}

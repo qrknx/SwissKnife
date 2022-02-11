@@ -1,0 +1,64 @@
+﻿@page "/structure-schema"
+
+@using System.Linq
+@using Blazorise
+@using Classeur.Core
+@using Classeur.Core.CustomizableStructure
+
+@inject IJSRuntime _js;
+@inject IRepository<StructureSchema, string> _repository;
+
+<PageTitle>@Title</PageTitle>
+
+<h1>@Title</h1>
+
+<Button Clicked="SaveAsync" Color="Color.Primary">Save</Button>
+<Button Clicked="@(async () => await _addFieldDialog!.Modal.Show())" Color="Color.Secondary">
+	Add field
+</Button>
+
+<ListGroup>
+	@foreach (FieldDescription field in _schema?.Latest.Fields ?? Enumerable.Empty<FieldDescription>())
+	{
+		<ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
+			@field.Label
+			<Badge Pill CloseClicked="@(() => RemoveField(field))" Color="Color.Danger" />
+		</ListGroupItem>
+	}
+</ListGroup>
+
+<StructureSchemaPage_AddFieldModal @ref="_addFieldDialog" @bind-Schema="_schema" />
+
+@code {
+
+	private const string Title = "Structure Schema";
+
+	private static readonly IncoherentId Id = new(1);
+
+	private StructureSchema? _schema;
+	private StructureSchemaPage_AddFieldModal? _addFieldDialog;
+
+	protected override async Task OnInitializedAsync()
+	{
+		List<StructureSchema> schemas = await _repository.GetAllAsync(CancellationToken.None);
+
+		if (schemas.FirstOrDefault(s => s.Id == Id) is {} schema)
+		{
+			_schema = schema;
+		}
+		else
+		{
+			_schema = new StructureSchema(Id);
+			await _repository.InsertAsync(_schema, CancellationToken.None);
+		}
+	}
+
+	private async Task SaveAsync()
+	{
+		await _repository.UpdateAsync(_schema, CancellationToken.None);
+		await _js.AlertAsync("Saved!", CancellationToken.None);
+	}
+
+	private void RemoveField(in FieldDescription field) => _schema = _schema!.RemoveFields(field.Key);
+
+}

@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SwissKnife.Serverless", "Sw
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "SolutionItems", "SolutionItems.shproj", "{752ADBE9-EE8C-4A9E-A0C1-BB8A85902AA1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Classeur.Core", "Classeur.Core\Classeur.Core.csproj", "{DA472A09-C43D-4BEE-817D-42D1B5E75A38}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Classeur.Core", "Classeur.Core\Classeur.Core.csproj", "{DA472A09-C43D-4BEE-817D-42D1B5E75A38}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Classeur.Tests", "Classeur.Tests\Classeur.Tests.csproj", "{0FF4F259-A4E3-4368-96A3-CB588A9BA228}"
 EndProject
