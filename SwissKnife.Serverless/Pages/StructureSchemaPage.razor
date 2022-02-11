@@ -17,7 +17,7 @@
 	Add field
 </Button>
 
-<ListGroup>
+<ListGroup role="main">
 	@foreach (FieldDescription field in _schema?.Latest.Fields ?? Enumerable.Empty<FieldDescription>())
 	{
 		<ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">

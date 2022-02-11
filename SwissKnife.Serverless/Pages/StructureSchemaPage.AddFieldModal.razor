@@ -7,12 +7,12 @@
 	<ModalContent Centered="true">
 		<ModalHeader>
 			<ModalTitle>Add field</ModalTitle>
-			<CloseButton />
+			<CloseButton/>
 		</ModalHeader>
 		<ModalBody>
 			<Field>
 				<FieldLabel>Label</FieldLabel>
-				<TextEdit @bind-Text="Label" />
+				<TextEdit @bind-Text="Label"/>
 			</Field>
 			<Field>
 				<FieldLabel>Type</FieldLabel>
@@ -28,26 +28,26 @@
 				case FieldTypeId.String:
 					<Field>
 						<FieldLabel>Default</FieldLabel>
-						<TextEdit @bind-Text="@_newStringField.Default" />
+						<TextEdit @bind-Text="@_newStringField.Default"/>
 					</Field>
 					<Field>
 						<FieldLabel>Max length</FieldLabel>
-						<TextEdit @bind-Text="@_newStringField.MaxLength" />
+						<TextEdit @bind-Text="@_newStringField.MaxLength"/>
 					</Field>
 					break;
 
 				case FieldTypeId.Int64:
 					<Field>
 						<FieldLabel>Default</FieldLabel>
-						<TextEdit @bind-Text="@_newInt64Field.Default" />
+						<TextEdit @bind-Text="@_newInt64Field.Default"/>
 					</Field>
 					<Field>
 						<FieldLabel>Min</FieldLabel>
-						<TextEdit @bind-Text="@_newInt64Field.Min" />
+						<TextEdit @bind-Text="@_newInt64Field.Min"/>
 					</Field>
 					<Field>
 						<FieldLabel>Max</FieldLabel>
-						<TextEdit @bind-Text="@_newInt64Field.Max" />
+						<TextEdit @bind-Text="@_newInt64Field.Max"/>
 					</Field>
 					break;
 
@@ -82,7 +82,7 @@
 			FieldTypeId.String => _newStringField.Label,
 			FieldTypeId.Int64 => _newInt64Field.Label,
 			_ => throw new NotImplementedException(),
-			};
+		};
 		set
 		{
 			switch (_selectedField)
@@ -150,20 +150,20 @@
 	private async Task AddFieldAsync()
 	{
 		Schema = Schema.AddFields(_selectedField switch
-			                          {
-			                          FieldTypeId.String => new FieldDescription(FieldKey,
-			                                                                     Label,
-			                                                                     FieldType.String(@default: _newStringField.Default,
-			                                                                                      new(MaxLength: int.Parse(_newStringField.MaxLength)))),
-	    
-			                          FieldTypeId.Int64 => new FieldDescription(FieldKey,
-			                                                                    Label,
-			                                                                    FieldType.Int64(@default: long.Parse(_newInt64Field.Default),
-			                                                                                    new(Min: long.Parse(_newInt64Field.Min),
-			                                                                                        Max: long.Parse(_newInt64Field.Max)))),
-	    
-			                          _ => throw new NotImplementedException(),
-			                          });
+		{
+		    FieldTypeId.String => new FieldDescription(FieldKey,
+		                                               Label,
+		                                               FieldType.String(@default: _newStringField.Default,
+		                                                                new(MaxLength: int.Parse(_newStringField.MaxLength)))),
+            
+		    FieldTypeId.Int64 => new FieldDescription(FieldKey,
+		                                              Label,
+		                                              FieldType.Int64(@default: long.Parse(_newInt64Field.Default),
+		                                                              new(Min: long.Parse(_newInt64Field.Min),
+		                                                                  Max: long.Parse(_newInt64Field.Max)))),
+            
+		    _ => throw new NotImplementedException(),
+		});
 
 		await SchemaChanged.InvokeAsync(Schema);
 	}
