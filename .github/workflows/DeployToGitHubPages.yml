@@ -16,6 +16,7 @@ jobs:
 
     - name: Build and Test .NET Projects
       run: |
+        dotnet nuget update source GitHub-qrknx --username qrknx --password ${{ secrets.PACKAGES_TOKEN }} --store-password-in-clear-text
         dotnet build --configuration Release SwissKnife.sln
         dotnet test --configuration Release --no-build SwissKnife.sln      
 
