@@ -1,9 +1,12 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 namespace Classeur.Core.CustomizableStructure;
 
 public readonly struct FieldType
 {
+    private const string DefaultMemberPrefix = "Default = ";
+
     private static readonly Constraints DefaultConstraints = new(ConstraintsString.Default,
                                                                  ConstraintsInt64.Default);
 
@@ -55,6 +58,52 @@ public readonly struct FieldType
         FieldTypeId.Int64 when Int64Constraints.TryNormalize(value, out object? packed) => packed,
         _ => throw new ArgumentException(),
     };
+
+    public override string ToString()
+    {
+        StringBuilder sb = new($"{nameof(FieldType)} = {{ ");
+
+        PrintMembers(sb);
+
+        return sb.Append(" }}").ToString();
+    }
+
+    private bool PrintMembers(StringBuilder builder)
+    {
+        const string infix = " = ";
+        const string postfix = ", ";
+
+        builder.Append(nameof(Id))
+               .Append(infix)
+               .Append(Id.ToString())
+               .Append(postfix);
+
+        switch (Id)
+        {
+            case FieldTypeId.String:
+                builder.Append(DefaultMemberPrefix)
+                       .Append(DefaultString)
+                       .Append(postfix)
+                       .Append(nameof(Constraints))
+                       .Append(infix)
+                       .Append(StringConstraints.ToString());
+                break;
+
+            case FieldTypeId.Int64:
+                builder.Append(DefaultMemberPrefix)
+                       .Append(DefaultInt64.ToString())
+                       .Append(postfix)
+                       .Append(nameof(Constraints))
+                       .Append(infix)
+                       .Append(Int64Constraints.ToString());
+                break;
+
+            default:
+                throw new NotImplementedException();
+        }
+
+        return true;
+    }
 
     private static T ThrowIfInvalid<T, TValidator>(T value, TValidator validator)
         where TValidator : IParser<T>

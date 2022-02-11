@@ -12,4 +12,6 @@ public readonly record struct FieldKey
     public FieldKey(string name) => Name = NameRegex.IsMatch(name)
         ? name
         : throw new ArgumentException();
+
+    public override string ToString() => Name;
 }

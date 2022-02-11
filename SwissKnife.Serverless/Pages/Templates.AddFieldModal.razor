@@ -103,12 +103,17 @@
 				throw new Exception();
 			}
 
+			if (!chunks[^1].Any())
+			{
+				chunks.RemoveAt(chunks.Count - 1);
+			}
+
 			StringBuilder stringBuilder = new(!char.IsDigit(chunks[0][0]) ? "" : "_",
 			                                  capacity: chunks.Sum(c => c.Count) + chunks.Count);
 
 			stringBuilder.AppendJoin("", chunks[0]);
 
-			foreach (List<char> chunk in chunks)
+			foreach (List<char> chunk in chunks.Skip(1))
 			{
 				stringBuilder.Append('_').AppendJoin("", chunk);
 			}

@@ -31,7 +31,7 @@
 	<ListGroup>
 		@foreach (FieldDescription field in SelectedTemplate.Latest.Fields)
 		{
-			<ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
+			<ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center" title="@field">
 				@field.Label
 				<Badge Pill CloseClicked="@(() => RemoveFieldAsync(field))" Color="Color.Danger" />
 			</ListGroupItem>
