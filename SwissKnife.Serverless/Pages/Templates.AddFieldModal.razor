@@ -142,30 +142,22 @@
 	}
 
 	[Parameter]
-	public StructureSchema Schema { get; set; } = null!;
+	public EventCallback<FieldDescription> FieldAdding { get; set; }
 
-	[Parameter]
-	public EventCallback<StructureSchema> SchemaChanged { get; set; }
-
-	private async Task AddFieldAsync()
+	private async Task AddFieldAsync() => await FieldAdding.InvokeAsync(_selectedField switch
 	{
-		Schema = Schema.AddFields(_selectedField switch
-		{
-		    FieldTypeId.String => new FieldDescription(FieldKey,
-		                                               Label,
-		                                               FieldType.String(@default: _newStringField.Default,
-		                                                                new(MaxLength: int.Parse(_newStringField.MaxLength)))),
-            
-		    FieldTypeId.Int64 => new FieldDescription(FieldKey,
-		                                              Label,
-		                                              FieldType.Int64(@default: long.Parse(_newInt64Field.Default),
-		                                                              new(Min: long.Parse(_newInt64Field.Min),
-		                                                                  Max: long.Parse(_newInt64Field.Max)))),
-            
-		    _ => throw new NotImplementedException(),
-		});
-
-		await SchemaChanged.InvokeAsync(Schema);
-	}
+	    FieldTypeId.String => new FieldDescription(FieldKey,
+	                                               Label,
+	                                               FieldType.String(@default: _newStringField.Default,
+	                                                                new(MaxLength: int.Parse(_newStringField.MaxLength)))),
+           
+	    FieldTypeId.Int64 => new FieldDescription(FieldKey,
+	                                              Label,
+	                                              FieldType.Int64(@default: long.Parse(_newInt64Field.Default),
+	                                                              new(Min: long.Parse(_newInt64Field.Min),
+	                                                                  Max: long.Parse(_newInt64Field.Max)))),
+           
+	    _ => throw new NotImplementedException(),
+	});
 
 }

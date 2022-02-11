@@ -2,7 +2,7 @@
 
 namespace Classeur.Core.Json;
 
-public static class Utf8JsonReaderExtensions
+internal static class Utf8JsonReaderExtensions
 {
     public static T? DeserializeProperty<T>(this ref Utf8JsonReader reader, string name, JsonSerializerOptions options)
     {

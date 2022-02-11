@@ -41,6 +41,7 @@ public readonly struct StructuredData
 
         var builder = ImmutableDictionary<FieldKey, object>.Empty.ToBuilder();
 
+        // Fields from old versions are not preserved by design
         foreach (FieldDescription field in latestVersion.Fields)
         {
             FieldKey key = field.Key;

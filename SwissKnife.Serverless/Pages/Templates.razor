@@ -1,4 +1,4 @@
-﻿@page "/structure-schema"
+﻿@page "/templates"
 
 @using System.Linq
 @using Blazorise
@@ -27,16 +27,17 @@
 	}
 </ListGroup>
 
-<StructureSchemaPage_AddFieldModal @ref="_addFieldDialog" @bind-Schema="_schema" />
+<Templates_AddFieldModal @ref="_addFieldDialog"
+                         FieldAdding="field => _schema = _schema!.AddFields(field)" />
 
 @code {
 
-	private const string Title = "Structure Schema";
+	private const string Title = "Templates";
 
 	private static readonly IncoherentId Id = new(1);
 
 	private StructureSchema? _schema;
-	private StructureSchemaPage_AddFieldModal? _addFieldDialog;
+	private Templates_AddFieldModal? _addFieldDialog;
 
 	protected override async Task OnInitializedAsync()
 	{
