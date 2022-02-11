@@ -52,18 +52,20 @@ public class LocalStorageRepository<T> : IRepository<T, string>
     {
         List<T> entities = await GetAllAsync(token);
 
-        int index = entities.FindIndex(e => e.Id == entity.Id);
-
-        if (index == -1)
-        {
-            throw new Exception();
-        }
-
-        entities[index] = entity;
+        entities[entities.FindIndex(e => e.Id == entity.Id)] = entity;
 
         await SaveAsync(entities, token);
 
         return entity;
+    }
+
+    public async Task DeleteAsync(string key, CancellationToken token)
+    {
+        List<T> entities = await GetAllAsync(token);
+
+        entities.RemoveAt(entities.FindIndex(e => e.Id == key));
+
+        await SaveAsync(entities, token);
     }
 
     private async Task SaveAsync(List<T> entities, CancellationToken token)

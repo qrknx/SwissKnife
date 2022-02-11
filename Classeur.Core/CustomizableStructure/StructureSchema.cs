@@ -32,14 +32,14 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>
 
     public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version));
 
-    public StructureSchema AddFields(params FieldDescription[] fields)
+    public StructureSchema AddFields(bool preserveVersion, params FieldDescription[] fields)
     {
         if (!fields.Any())
         {
             return this;
         }
 
-        int nextVersion = GetNextVersion();
+        int nextVersion = GetNextVersion(preserveVersion);
 
         return new StructureSchema(Id,
                                    Changes.Concat(fields.Select(f => !Changes.Any(c => c.Has(f.Key))
@@ -48,7 +48,7 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>
                                           .ToImmutableList());
     }
 
-    public StructureSchema RemoveFields(params FieldKey[] keys)
+    public StructureSchema RemoveFields(bool preserveVersion, params FieldKey[] keys)
     {
         var fieldsToRemove = keys.Intersect(Latest.Fields.Select(f => f.Key))
                                  .ToImmutableList();
@@ -58,14 +58,16 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>
             return this;
         }
 
-        int nextVersion = GetNextVersion();
+        int nextVersion = GetNextVersion(preserveVersion);
 
         return new StructureSchema(Id,
                                    Changes.Concat(fieldsToRemove.Select(f => new FieldRemoved(f, nextVersion)))
                                           .ToImmutableList());
     }
 
-    private int GetNextVersion() => Latest.Version + 1;
+    private int GetNextVersion(bool preserveVersion) => preserveVersion
+        ? Latest.Version
+        : Latest.Version + 1;
 
     private IEnumerable<FieldDescription> GetFieldsForVersion(int version)
     {

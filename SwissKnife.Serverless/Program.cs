@@ -40,7 +40,7 @@ builder.Services
        .AddSingleton<IRepository<StructureSchema, string>>(sp =>
        {
            return new LocalStorageRepository<StructureSchema>(sp.GetRequiredService<IJSRuntime>(),
-                                                              "schemas",
+                                                              collectionId: "schemas",
                                                               sp.GetRequiredService<JsonSerializerOptions>());
        });
 

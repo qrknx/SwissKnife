@@ -9,4 +9,6 @@ public interface IRepository<T, TKey>
     Task<List<T>> GetAllAsync(CancellationToken token);
 
     Task<T> UpdateAsync(T entity, CancellationToken token);
+
+    Task DeleteAsync(TKey key, CancellationToken token);
 }

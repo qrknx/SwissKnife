@@ -8,7 +8,9 @@ public readonly struct IncoherentId : IEquatable<IncoherentId>
 
     public bool IsZero => UnderlyingValue == 0;
 
-    public IncoherentId(long value) => UnderlyingValue = value;
+    public IncoherentId(long value) => UnderlyingValue = value > 0
+        ? value
+        : throw new ArgumentException();
 
     public bool Equals(IncoherentId other) => this == other;
 
@@ -30,17 +32,14 @@ public readonly struct IncoherentId : IEquatable<IncoherentId>
         {
             generator.GetBytes(span);
 
+            // Make positive
             value = BitConverter.ToInt64(span) & 0x7F_FF_FF_FF_FF_FF_FF_FF;
-
-            // Assert
-            if (value < 0)
-            {
-                throw new Exception("Generated id is less than 0.");
-            }
         } while (value == 0);
 
         return new IncoherentId(value);
     }
+
+    public static IncoherentId Parse(string s) => new(long.Parse(s));
 
     public static bool operator ==(in IncoherentId x, in IncoherentId y) => x.UnderlyingValue == y.UnderlyingValue;
 

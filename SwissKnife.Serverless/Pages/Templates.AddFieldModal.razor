@@ -12,7 +12,7 @@
 		<ModalBody>
 			<Field>
 				<FieldLabel>Label</FieldLabel>
-				<TextEdit @bind-Text="Label"/>
+				<TextEdit @bind-Text="_label"/>
 			</Field>
 			<Field>
 				<FieldLabel>Type</FieldLabel>
@@ -65,41 +65,17 @@
 
 	private Modal? _addFieldDialog;
 
+	private string _label = "";
+
 	private FieldTypeId _selectedField = FieldTypeId.String;
 
-	private (string Label, string Default, string MaxLength) _newStringField
-		= ("", "", FieldType.ConstraintsString.Default.MaxLength.ToString());
+	private (string Default, string MaxLength) _newStringField
+		= ("", FieldType.ConstraintsString.Default.MaxLength.ToString());
 
-	private (string Label, string Default, string Min, string Max) _newInt64Field
-		= ("", "0", FieldType.ConstraintsInt64.Default.Min.ToString(), FieldType.ConstraintsInt64.Default.Max.ToString());
+	private (string Default, string Min, string Max) _newInt64Field
+		= ("0", FieldType.ConstraintsInt64.Default.Min.ToString(), FieldType.ConstraintsInt64.Default.Max.ToString());
 
 	public Modal Modal => _addFieldDialog!;
-
-	private string Label
-	{
-		get => _selectedField switch
-		{
-			FieldTypeId.String => _newStringField.Label,
-			FieldTypeId.Int64 => _newInt64Field.Label,
-			_ => throw new NotImplementedException(),
-		};
-		set
-		{
-			switch (_selectedField)
-			{
-				case FieldTypeId.String:
-					_newStringField.Label = value;
-					break;
-
-				case FieldTypeId.Int64:
-					_newInt64Field.Label = value;
-					break;
-
-				case var _:
-					throw new NotImplementedException();
-			}
-		}
-	}
 
 	private FieldKey FieldKey
 	{
@@ -110,7 +86,7 @@
 				new(),
 			};
 
-			foreach (char c in Label)
+			foreach (char c in _label)
 			{
 				if (c == '_' || char.IsLetterOrDigit(c))
 				{
@@ -144,15 +120,17 @@
 	[Parameter]
 	public EventCallback<FieldDescription> FieldAdding { get; set; }
 
+	public void ResetLabel() => _label = "";
+
 	private async Task AddFieldAsync() => await FieldAdding.InvokeAsync(_selectedField switch
 	{
 	    FieldTypeId.String => new FieldDescription(FieldKey,
-	                                               Label,
+	                                               _label,
 	                                               FieldType.String(@default: _newStringField.Default,
 	                                                                new(MaxLength: int.Parse(_newStringField.MaxLength)))),
            
 	    FieldTypeId.Int64 => new FieldDescription(FieldKey,
-	                                              Label,
+	                                              _label,
 	                                              FieldType.Int64(@default: long.Parse(_newInt64Field.Default),
 	                                                              new(Min: long.Parse(_newInt64Field.Min),
 	                                                                  Max: long.Parse(_newInt64Field.Max)))),
