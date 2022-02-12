@@ -45,7 +45,7 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
             FieldKey key = new(reader.GetString() ?? throw new JsonException());
 
-            if (!structuredData.Version.TryGetField(key, out FieldDescription field))
+            if (!structuredData.Version.TryGetField(key, out _, out FieldDescription field))
             {
                 throw new JsonException();
             }

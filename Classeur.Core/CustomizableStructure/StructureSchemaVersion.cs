@@ -15,10 +15,6 @@ public class StructureSchemaVersion
 
     public int NextVersion => Version + 1;
 
-    public int PreviousVersion => Version != Initial.Version
-        ? Version - 1
-        : throw new Exception();
-
     public IEnumerable<FieldDescription> Fields => _fieldsByKey.Values.OrderBy(x => x.Index).Select(x => x.Field);
 
     public IEnumerable<FieldDescription> UnorderedFields => _fieldsByKey.Values.Select(x => x.Field);
@@ -36,18 +32,20 @@ public class StructureSchemaVersion
         _fieldsByKey = fields;
     }
 
-    public bool Has(FieldKey key) => TryGetField(key, out _);
+    public bool Has(FieldKey key) => TryGetField(key, out _, out _);
 
     public FieldDescription GetField(FieldKey key) => _fieldsByKey[key].Field;
 
-    public bool TryGetField(FieldKey key, out FieldDescription field)
+    public bool TryGetField(FieldKey key, out int index, out FieldDescription field)
     {
         if (_fieldsByKey.TryGetValue(key, out (int Index, FieldDescription Field) x))
         {
+            index = x.Index;
             field = x.Field;
             return true;
         }
 
+        index = -1;
         field = default;
         return false;
     }
