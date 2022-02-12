@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Immutable;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Classeur.Core.CustomizableStructure;
 
@@ -7,10 +8,17 @@ namespace Classeur.Core.Json;
 public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
 {
     private const string ChangeTypeFieldName = "ChangeType";
+    private const string FieldTypeIdFieldName = "TypeId";
+    private const string FieldTypeFieldName = "Type";
 
-    public static readonly StructureSchemaJsonConverter Instance = new();
+    private readonly ImmutableDictionary<string, Type> _typeById;
+    private readonly ImmutableDictionary<Type, string> _idByType;
 
-    protected StructureSchemaJsonConverter() {}
+    public StructureSchemaJsonConverter(ImmutableDictionary<string, Type> typeById)
+    {
+        _typeById = typeById;
+        _idByType = _typeById.ToImmutableDictionary(x => x.Value, x => x.Key);
+    }
 
     public override StructureSchema Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -34,24 +42,23 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
             {
                 case nameof(StructureSchema.FieldAdded):
                     version = ReadVersion(ref reader);
-                    reader.MoveIfEquals(nameof(FieldDescription.Key));
-                    FieldKey keyAdded = JsonSerializer.Deserialize<FieldKey>(ref reader, options);
-                    reader.Read();
+                    FieldKey keyAdded = reader.DeserializeProperty<FieldKey>(nameof(FieldDescription.Key), options);
                     reader.MoveIfEquals(nameof(FieldDescription.Label));
                     string label = reader.GetString() ?? throw new JsonException();
                     reader.Read();
-                    reader.MoveIfEquals(nameof(FieldDescription.Type));
-                    FieldType typeAdded = JsonSerializer.Deserialize<FieldType>(ref reader, options);
+                    reader.MoveIfEquals(FieldTypeIdFieldName);
+                    Type type = _typeById[reader.GetString() ?? throw new JsonException()];
                     reader.Read();
+                    var typeAdded = (AbstractFieldType?)reader.DeserializeProperty(FieldTypeFieldName, type, options)
+                                    ?? throw new JsonException();
                     changes.Add(new StructureSchema.FieldAdded(new FieldDescription(keyAdded, label, typeAdded),
                                                                version));
                     break;
 
                 case nameof(StructureSchema.FieldRemoved):
                     version = ReadVersion(ref reader);
-                    reader.MoveIfEquals(nameof(StructureSchema.FieldRemoved.Key));
-                    FieldKey keyRemoved = JsonSerializer.Deserialize<FieldKey>(ref reader, options);
-                    reader.Read();
+                    FieldKey keyRemoved
+                        = reader.DeserializeProperty<FieldKey>(nameof(StructureSchema.FieldRemoved.Key), options);
                     changes.Add(new StructureSchema.FieldRemoved(keyRemoved, version));
                     break;
 
@@ -91,8 +98,10 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
                     writer.WritePropertyName(nameof(FieldDescription.Key));
                     JsonSerializer.Serialize(writer, key, options);
                     writer.WriteString(nameof(FieldDescription.Label), label);
-                    writer.WritePropertyName(nameof(FieldDescription.Type));
-                    JsonSerializer.Serialize(writer, type, options);
+                    Type runtimeType = type.GetType();
+                    writer.WriteString(FieldTypeIdFieldName, _idByType[runtimeType]);
+                    writer.WritePropertyName(FieldTypeFieldName);
+                    JsonSerializer.Serialize(writer, type, runtimeType, options);
                     break;
 
                 case StructureSchema.FieldRemoved {Key: var key}:

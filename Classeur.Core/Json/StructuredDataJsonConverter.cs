@@ -52,13 +52,13 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
             reader.Read();
 
-            structuredData = field.Type.Id switch
+            structuredData = field.Type switch
             {
-                FieldTypeId.String => structuredData.Set(key, reader.GetString() ?? throw new JsonException()),
-                FieldTypeId.Int64 => structuredData.Set(key,
-                                                        reader.TryGetInt64(out long int64)
-                                                            ? int64
-                                                            : throw new JsonException()),
+                StringFieldType => structuredData.Set(key, reader.GetString() ?? throw new JsonException()),
+                Int64FieldType => structuredData.Set(key,
+                                                     reader.TryGetInt64(out long int64)
+                                                         ? int64
+                                                         : throw new JsonException()),
                 _ => throw new NotImplementedException(),
             };
 
@@ -82,13 +82,13 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
         {
             FieldKey key = field.Key;
 
-            switch (field.Type.Id)
+            switch (field.Type)
             {
-                case FieldTypeId.String:
+                case StringFieldType:
                     writer.WriteString(key.Name, value.Get<string>(key));
                     break;
 
-                case FieldTypeId.Int64:
+                case Int64FieldType:
                     writer.WriteNumber(key.Name, value.Get<long>(key));
                     break;
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.IO;
 using System.Text.Json;
 using Classeur.Core;
@@ -15,10 +16,11 @@ public class StructureSchemaJsonConverterTests
     {
         Converters =
         {
-            StructureSchemaJsonConverter.Instance,
+            new StructureSchemaJsonConverter(ImmutableDictionary<string, Type>.Empty
+                                                                              .Add("String", typeof(StringFieldType))
+                                                                              .Add("Int64", typeof(Int64FieldType))),
             IncoherentIdJsonConverter.Instance,
             FieldKeyJsonConverter.Instance,
-            FieldTypeJsonConverter.Instance,
         },
     };
 
@@ -38,7 +40,9 @@ public class StructureSchemaJsonConverterTests
 
         using StreamReader reader = new(stream);
 
-        Assert.Equal(expectedJson, actual: reader.ReadToEnd());
+        string json = reader.ReadToEnd();
+
+        Assert.Equal(expectedJson, actual: json);
 
         stream.Position = 0;
 
@@ -55,21 +59,21 @@ public class StructureSchemaJsonConverterTests
             Add((Array.Empty<StructureSchema.Change>(),
                  new
                  {
-                     Id = 123,
+                     Id = Id.UnderlyingValue,
                      Changes = Array.Empty<object>(),
                  }));
 
             Add((new StructureSchema.Change[]
                  {
-                     new StructureSchema.FieldAdded(new(new("f1"), "F1", FieldType.String("abc", new FieldType.ConstraintsString(10))),
+                     new StructureSchema.FieldAdded(new(new("f1"), "F1", new StringFieldType(10, "abc")),
                          Version: 1),
-                     new StructureSchema.FieldAdded(new(new("f2"), "F2", FieldType.Int64(100, new FieldType.ConstraintsInt64(-100, 200))),
+                     new StructureSchema.FieldAdded(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)),
                                                     Version: 1),
                      new StructureSchema.FieldRemoved(new("f1"), Version: 2),
                  },
                  new
                  {
-                     Id = 123,
+                     Id = Id.UnderlyingValue,
                      Changes = new object[]
                      {
                          new
@@ -78,13 +82,10 @@ public class StructureSchemaJsonConverterTests
                              Version = 1,
                              Key = "f1",
                              Label = "F1",
+                             TypeId = "String",
                              Type = new
                              {
-                                 Id = 1,
-                                 Constraints = new
-                                 {
-                                     MaxLength = 10,
-                                 },
+                                 MaxLength = 10,
                                  Default = "abc",
                              },
                          },
@@ -94,14 +95,11 @@ public class StructureSchemaJsonConverterTests
                              Version = 1,
                              Key = "f2",
                              Label = "F2",
+                             TypeId = "Int64",
                              Type = new
                              {
-                                 Id = 2,
-                                 Constraints = new
-                                 {
-                                     Min = -100,
-                                     Max = 200,
-                                 },
+                                 Min = -100,
+                                 Max = 200,
                                  Default = 100,
                              },
                          },

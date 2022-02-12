@@ -2,6 +2,7 @@
 @using Blazorise;
 @using Microsoft.AspNetCore.Components
 @using Classeur.Core.CustomizableStructure
+@using DotNetToolbox
 
 <Modal @ref="_addFieldDialog">
 	<ModalContent Centered="true">
@@ -16,38 +17,38 @@
 			</Field>
 			<Field>
 				<FieldLabel>Type</FieldLabel>
-				<Select TValue="FieldTypeId" @bind-SelectedValue="_selectedField">
-					@foreach (FieldTypeId id in Enum.GetValues<FieldTypeId>())
+				<Select TValue="string" @bind-SelectedValue="_selectedFieldId">
+					@foreach (var known in UIFieldType.All)
 					{
-						<SelectItem Value="id">@id.ToString()</SelectItem>
+						<SelectItem Value="known.Id">@known.Name</SelectItem>
 					}
 				</Select>
 			</Field>
-			@switch (_selectedField)
+			@switch (SelectedField)
 			{
-				case FieldTypeId.String:
+				case StringUIFieldType type:
 					<Field>
 						<FieldLabel>Default</FieldLabel>
-						<TextEdit @bind-Text="@_newStringField.Default"/>
+						<TextEdit @bind-Text="@type.Default"/>
 					</Field>
 					<Field>
 						<FieldLabel>Max length</FieldLabel>
-						<TextEdit @bind-Text="@_newStringField.MaxLength"/>
+						<TextEdit @bind-Text="@type.MaxLength"/>
 					</Field>
 					break;
 
-				case FieldTypeId.Int64:
+				case Int64UIFieldType type:
 					<Field>
 						<FieldLabel>Default</FieldLabel>
-						<TextEdit @bind-Text="@_newInt64Field.Default"/>
+						<TextEdit @bind-Text="@type.Default"/>
 					</Field>
 					<Field>
 						<FieldLabel>Min</FieldLabel>
-						<TextEdit @bind-Text="@_newInt64Field.Min"/>
+						<TextEdit @bind-Text="@type.Min"/>
 					</Field>
 					<Field>
 						<FieldLabel>Max</FieldLabel>
-						<TextEdit @bind-Text="@_newInt64Field.Max"/>
+						<TextEdit @bind-Text="@type.Max"/>
 					</Field>
 					break;
 
@@ -67,13 +68,11 @@
 
 	private string _label = "";
 
-	private FieldTypeId _selectedField = FieldTypeId.String;
+	private UIFieldType[] _newFields = UIFieldType.All.ToArray(t => (UIFieldType)Activator.CreateInstance(t.Type)!);
 
-	private (string Default, string MaxLength) _newStringField
-		= ("", FieldType.ConstraintsString.Default.MaxLength.ToString());
+	private string _selectedFieldId = UIFieldType.All.First().Id;
 
-	private (string Default, string Min, string Max) _newInt64Field
-		= ("0", FieldType.ConstraintsInt64.Default.Min.ToString(), FieldType.ConstraintsInt64.Default.Max.ToString());
+	private UIFieldType SelectedField => _newFields.First(f => f.GetType().FullName == _selectedFieldId);
 
 	public Modal Modal => _addFieldDialog!;
 
@@ -127,20 +126,44 @@
 
 	public void ResetLabel() => _label = "";
 
-	private async Task AddFieldAsync() => await FieldAdding.InvokeAsync(_selectedField switch
+	private async Task AddFieldAsync()
+		=> await FieldAdding.InvokeAsync(SelectedField.GetDescription(FieldKey, _label));
+
+	private abstract record UIFieldType
 	{
-	    FieldTypeId.String => new FieldDescription(FieldKey,
-	                                               _label,
-	                                               FieldType.String(@default: _newStringField.Default,
-	                                                                new(MaxLength: int.Parse(_newStringField.MaxLength)))),
-           
-	    FieldTypeId.Int64 => new FieldDescription(FieldKey,
-	                                              _label,
-	                                              FieldType.Int64(@default: long.Parse(_newInt64Field.Default),
-	                                                              new(Min: long.Parse(_newInt64Field.Min),
-	                                                                  Max: long.Parse(_newInt64Field.Max)))),
-           
-	    _ => throw new NotImplementedException(),
-	});
+		public static readonly KnownFieldTypeDescription[] All =
+		{
+			new("String", typeof(StringUIFieldType)),
+			new("Int64", typeof(Int64UIFieldType)),
+		};
+
+		public abstract FieldDescription GetDescription(FieldKey key, string label);
+
+		public readonly record struct KnownFieldTypeDescription(string Name, Type Type)
+		{
+			public string Id => Type.FullName!;
+		}
+	}
+
+	private record StringUIFieldType : UIFieldType
+	{
+		public string MaxLength = StringFieldType.Defaults.MaxLength.ToString();
+		public string Default = StringFieldType.Defaults.Default;
+
+		public override FieldDescription GetDescription(FieldKey key, string label)
+			=> new(key, label, new StringFieldType(maxLength: int.Parse(MaxLength), @default: Default));
+	}
+
+	private record Int64UIFieldType : UIFieldType
+	{
+		public string Min = Int64FieldType.Defaults.Min.ToString();
+		public string Max = Int64FieldType.Defaults.Max.ToString();
+		public string Default = Int64FieldType.Defaults.Default.ToString();
+
+		public override FieldDescription GetDescription(FieldKey key, string label)
+			=> new(key, label, new Int64FieldType(min: long.Parse(Min),
+			                                      max: long.Parse(Max),
+			                                      @default: long.Parse(Default)));
+	}
 
 }

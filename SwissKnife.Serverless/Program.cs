@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using Blazorise;
 using Blazorise.Bootstrap;
@@ -31,10 +32,11 @@ builder.Services
        {
            Converters =
            {
-               StructureSchemaJsonConverter.Instance,
+               new StructureSchemaJsonConverter(ImmutableDictionary<string, Type>.Empty
+                                                    .Add("String", typeof(StringFieldType))
+                                                    .Add("Int64", typeof(Int64FieldType))),
                IncoherentIdJsonConverter.Instance,
                FieldKeyJsonConverter.Instance,
-               FieldTypeJsonConverter.Instance,
            },
        })
        .AddSingleton<IRepository<StructureSchema, string>>(sp =>

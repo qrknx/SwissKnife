@@ -15,6 +15,20 @@ internal static class Utf8JsonReaderExtensions
         return value;
     }
 
+    public static object? DeserializeProperty(this ref Utf8JsonReader reader,
+                                              string name,
+                                              Type type,
+                                              JsonSerializerOptions options)
+    {
+        reader.MoveIfEquals(name);
+
+        object? value = JsonSerializer.Deserialize(ref reader, returnType: type, options);
+
+        reader.Read();
+
+        return value;
+    }
+
     public static bool MoveIfEquals(this ref Utf8JsonReader reader, string s) => reader.GetString() == s
         ? reader.Read()
         : throw new JsonException();
