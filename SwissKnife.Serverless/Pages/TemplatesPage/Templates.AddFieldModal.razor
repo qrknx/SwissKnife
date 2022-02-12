@@ -5,6 +5,8 @@
 @using DotNetToolbox
 @using SwissKnife.Serverless.Pages.TemplatesPage.Types
 
+@inject List<KnownFieldTypeDescription> _fieldTypeDescriptions;
+
 <Modal @ref="_addFieldDialog">
 	<ModalContent Centered="true">
 		<ModalHeader>
@@ -19,7 +21,7 @@
 			<Field>
 				<FieldLabel>Type</FieldLabel>
 				<Select TValue="string" @bind-SelectedValue="_selectedFieldId">
-					@foreach (var known in IUIFieldType.All)
+					@foreach (KnownFieldTypeDescription known in _fieldTypeDescriptions)
 					{
 						<SelectItem Value="known.Id">@known.Name</SelectItem>
 					}
@@ -40,11 +42,11 @@
 
 	private string _label = "";
 
-	private IUIFieldType[] _newFields = IUIFieldType.All.ToArray(t => (IUIFieldType)Activator.CreateInstance(t.Type)!);
+	private IUIFieldType[] _newFields = Array.Empty<IUIFieldType>();
 
-	private string _selectedFieldId = IUIFieldType.All.First().Id;
+	private string _selectedFieldId = "";
 
-	private IUIFieldType SelectedField => _newFields.First(f => f.GetType().FullName == _selectedFieldId);
+	private IUIFieldType SelectedField => _newFields[_fieldTypeDescriptions.FindIndex(t => t.Id == _selectedFieldId)];
 
 	public Modal Modal => _addFieldDialog;
 
@@ -97,6 +99,12 @@
 	public EventCallback<FieldDescription> FieldAdding { get; set; }
 
 	public void ResetLabel() => _label = "";
+
+	protected override void OnInitialized()
+	{
+		_newFields = _fieldTypeDescriptions.ToArray(t => t.Create());
+		_selectedFieldId = _fieldTypeDescriptions.First().Id;
+	}
 
 	private async Task AddFieldAsync()
 	{

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 using SwissKnife.Serverless;
+using SwissKnife.Serverless.Pages.TemplatesPage.Types;
 using SwissKnife.Serverless.Services;
 
 WebAssemblyHostBuilder builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -38,6 +39,11 @@ builder.Services
                IncoherentIdJsonConverter.Instance,
                FieldKeyJsonConverter.Instance,
            },
+       })
+       .AddSingleton(_ => new List<KnownFieldTypeDescription>
+       {
+           new("String", typeof(StringUIFieldType)),
+           new("Int64", typeof(Int64UIFieldType)),
        })
        .AddSingleton<IRepository<StructureSchema, string>>(sp =>
        {
