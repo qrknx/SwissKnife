@@ -26,7 +26,7 @@ public readonly struct StructuredData
 
         var builder = ImmutableDictionary<FieldKey, object>.Empty.ToBuilder();
 
-        foreach (FieldDescription field in selectedVersion.Fields)
+        foreach (FieldDescription field in selectedVersion.UnorderedFields)
         {
             builder[field.Key] = field.Type.GetDefaultValue();
         }
@@ -42,7 +42,7 @@ public readonly struct StructuredData
         var builder = ImmutableDictionary<FieldKey, object>.Empty.ToBuilder();
 
         // Fields from old versions are not preserved by design
-        foreach (FieldDescription field in latestVersion.Fields)
+        foreach (FieldDescription field in latestVersion.UnorderedFields)
         {
             FieldKey key = field.Key;
 

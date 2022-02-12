@@ -13,7 +13,15 @@ public class StructureSchemaVersion
 
     public readonly int Version;
 
+    public int NextVersion => Version + 1;
+
+    public int PreviousVersion => Version != Initial.Version
+        ? Version - 1
+        : throw new Exception();
+
     public IEnumerable<FieldDescription> Fields => _fieldsByKey.Values.OrderBy(x => x.Index).Select(x => x.Field);
+
+    public IEnumerable<FieldDescription> UnorderedFields => _fieldsByKey.Values.Select(x => x.Field);
 
     public int TotalFields => _fieldsByKey.Count;
 

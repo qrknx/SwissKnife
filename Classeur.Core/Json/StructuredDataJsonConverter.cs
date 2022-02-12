@@ -78,7 +78,7 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
         writer.WriteNumber(nameof(StructuredData.Version), value.Version.Version);
         writer.WriteStartObject(DataFieldName);
 
-        foreach (FieldDescription field in value.Version.Fields)
+        foreach (FieldDescription field in value.Version.UnorderedFields)
         {
             FieldKey key = field.Key;
 

@@ -15,5 +15,6 @@ public class StructureSchemaTests
         Assert.Equal(0, schema.Latest.Version);
         Assert.Equal(0, schema.Latest.TotalFields);
         Assert.Empty(schema.Latest.Fields);
+        Assert.Empty(schema.Latest.UnorderedFields);
     }
 }

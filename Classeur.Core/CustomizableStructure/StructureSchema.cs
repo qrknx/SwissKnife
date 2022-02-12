@@ -26,6 +26,7 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
         Id = id;
         Changes = changes;
         Latest = changes.LastOrDefault() is { Version: var version }
+            // Validates changes
             ? GetVersion(version)
             : StructureSchemaVersion.Initial;
     }
@@ -50,8 +51,8 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
 
     public StructureSchema RemoveFields(bool preserveVersion, params FieldKey[] keys)
     {
-        var fieldsToRemove = keys.Intersect(Latest.Fields.Select(f => f.Key))
-                                 .ToImmutableList();
+        var fieldsToRemove = keys.Intersect(Latest.UnorderedFields.Select(f => f.Key))
+                                 .ToList();
 
         if (!fieldsToRemove.Any())
         {
@@ -60,9 +61,40 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
 
         int nextVersion = GetNextVersion(preserveVersion);
 
-        return new StructureSchema(Id,
-                                   Changes.Concat(fieldsToRemove.Select(f => new FieldRemoved(f, nextVersion)))
-                                          .ToImmutableList());
+        if (!preserveVersion)
+        {
+            return new StructureSchema(Id, Changes.Concat(fieldsToRemove.Select(f => new FieldRemoved(f, nextVersion)))
+                                                  .ToImmutableList());
+        }
+
+        List<(bool Removed, Change Change)> latestChanges = Changes.SkipWhile(c => c.Version < Latest.Version)
+                                                                   .Select(c => (Removed: false, Change: c))
+                                                                   .ToList();
+
+        List<FieldRemoved> removeChanges = new(capacity: fieldsToRemove.Count);
+
+        // O(n^2)
+        foreach (FieldKey key in fieldsToRemove)
+        {
+            int index = latestChanges.FindIndex(x => x.Change is FieldAdded fieldAdded && fieldAdded.Field.Key == key);
+
+            if (index == -1)
+            {
+                removeChanges.Add(new FieldRemoved(key, nextVersion));
+            }
+            else
+            {
+                (bool Removed, Change Change) annihilatedAdd = latestChanges[index];
+
+                annihilatedAdd.Removed = true;
+
+                latestChanges[index] = annihilatedAdd;
+            }
+        }
+
+        return new StructureSchema(Id, Changes.TakeWhile(c => c.Version < Latest.Version)
+                                              .Concat(latestChanges.Where(x => !x.Removed).Select(x => x.Change))
+                                              .Concat(removeChanges).ToImmutableList());
     }
 
     public bool Equals(StructureSchema? other)
@@ -91,7 +123,7 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
 
     private int GetNextVersion(bool preserveVersion) => preserveVersion
         ? Latest.Version
-        : Latest.Version + 1;
+        : Latest.NextVersion;
 
     private IEnumerable<FieldDescription> GetFieldsForVersion(int version)
     {
@@ -103,12 +135,15 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
             switch (change)
             {
                 case FieldAdded(var field, _):
+                    // `Add` also validates sequence of changes as it throws when duplicate is found
                     fields.Add(field.Key, (i, field));
                     break;
 
-                case FieldRemoved(var key, _):
-                    fields.Remove(key);
+                case FieldRemoved(var key, _) when fields.Remove(key): ;
                     break;
+
+                case FieldRemoved:
+                    throw new ArgumentException();
 
                 default:
                     throw new NotImplementedException();
