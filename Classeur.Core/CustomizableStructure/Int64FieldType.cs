@@ -27,5 +27,5 @@ public record Int64FieldType : AbstractFieldType
 
     public override object Parse(object value) => ThrowIfBoxedNot<long>(value, IsValid);
 
-    private bool IsValid(long s) => Math.Max(Min, Math.Min(Max, Default)) == Default;
+    private bool IsValid(long s) => MathUtils.Intersects(Default, min: Min, max: Max);
 }
