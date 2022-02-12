@@ -63,13 +63,11 @@ public class StructureSchemaJsonConverterTests
                      Changes = Array.Empty<object>(),
                  }));
 
-            Add((new StructureSchema.Change[]
+            Add((new[]
                  {
-                     new StructureSchema.FieldAdded(new(new("f1"), "F1", new StringFieldType(10, "abc")),
-                         Version: 1),
-                     new StructureSchema.FieldAdded(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)),
-                                                    Version: 1),
-                     new StructureSchema.FieldRemoved(new("f1"), Version: 2),
+                     StructureSchema.Change.FieldAdded(new(new("f1"), "F1", new StringFieldType(10, "abc")), 1),
+                     StructureSchema.Change.FieldAdded(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)), 1),
+                     StructureSchema.Change.FieldRemoved(new("f1"), 2),
                  },
                  new
                  {
