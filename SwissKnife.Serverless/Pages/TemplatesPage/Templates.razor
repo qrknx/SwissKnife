@@ -12,7 +12,7 @@
 <h1>@Title</h1>
 
 <Button Clicked="AddTemplateAsync" Color="Color.Primary">Add template</Button>
-<Button Clicked="SaveTemplateAsync" Color="Color.Secondary" Disabled="!_hasChanges">Save template</Button>
+<Button Clicked="SaveTemplateAsync" Color="Color.Secondary" Disabled="@(!_hasChanges)">Save template</Button>
 <Button Clicked="DeleteTemplateAsync" Color="Color.Danger">Delete template</Button>
 
 <Select TValue="string"
@@ -93,13 +93,16 @@
 
 	private async Task RemoveFieldAsync(FieldDescription field)
 	{
-		SelectedTemplate = SelectedTemplate.RemoveFields(preserveVersion: await HasPendingChangesAsync(), field.Key);
+		SelectedTemplate = SelectedTemplate.ToLatestVersionMutator()
+		                                   .RemoveField(field.Key, preserveVersion: await HasPendingChangesAsync());
 		await UpdateHasChangesAsync();
 	}
 
 	private async Task OnFieldAddingAsync(FieldDescription field)
 	{
-		SelectedTemplate = SelectedTemplate.AddFields(preserveVersion: await HasPendingChangesAsync(), field);
+		SelectedTemplate = SelectedTemplate.ToLatestVersionMutator()
+		                                   .AddField(field, preserveVersion: await HasPendingChangesAsync())
+		                                   .Schema;
 		_addFieldDialog!.ResetLabel();
 		await UpdateHasChangesAsync();
 	}

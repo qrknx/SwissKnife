@@ -2,7 +2,7 @@
 
 namespace Classeur.Core.CustomizableStructure;
 
-public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatable<StructureSchema>
+public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatable<StructureSchema>
 {
     public readonly IncoherentId Id;
     public readonly ImmutableList<Change> Changes;
@@ -33,83 +33,21 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
 
     public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version));
 
-    public StructureSchema AddFields(bool preserveVersion, params FieldDescription[] fields)
+    public StructureSchema AddChange(in Change change) => change switch
     {
-        if (!fields.Any())
-        {
-            return this;
-        }
+        { Version: var v} when v != Latest.Version && v != Latest.NextVersion => throw new ArgumentException(),
 
-        int nextVersion = GetNextVersion(preserveVersion);
+        { IsAdded: true, Field.Key: var key } when !Changes.Any(c => c.Has(key))
+            => new StructureSchema(Id, Changes.Add(change)),
 
-        return new StructureSchema(Id,
-                                   Changes.AddRange(fields.Select(f => !Changes.Any(c => c.Has(f.Key))
-                                                                    ? Change.FieldAdded(f, nextVersion)
-                                                                    : throw new ArgumentException())));
-    }
+        { IsAdded: true } => throw new ArgumentException(),
 
-    public StructureSchema RemoveFields(bool preserveVersion, params FieldKey[] keys)
-    {
-        var fieldsToRemove = keys.Intersect(Latest.UnorderedFields.Select(f => f.Key))
-                                 .ToList();
+        { IsRemoved: true, Key: var key } when Latest.Has(key) => new StructureSchema(Id, Changes.Add(change)),
 
-        if (!fieldsToRemove.Any())
-        {
-            return this;
-        }
+        { IsRemoved: true } or { IsNop: true } => this,
 
-        int nextVersion = GetNextVersion(preserveVersion);
-
-        if (!preserveVersion)
-        {
-            return new StructureSchema(
-                Id,
-                Changes.AddRange(fieldsToRemove.Select(f => Change.FieldRemoved(f, nextVersion))));
-        }
-
-        List<(bool Removed, Change Change)> latestChanges = Changes.SkipWhile(c => c.Version < Latest.Version)
-                                                                   .Select(c => (Removed: false, Change: c))
-                                                                   .ToList();
-
-        List<Change> removeChanges = new(capacity: fieldsToRemove.Count);
-
-        // O(n^2)
-        foreach (FieldKey key in fieldsToRemove)
-        {
-            int index = latestChanges.FindIndex(x => x.Change.IsAdded && x.Change.Has(key));
-
-            if (index == -1)
-            {
-                removeChanges.Add(Change.FieldRemoved(key, nextVersion));
-            }
-            else
-            {
-                (bool Removed, Change Change) annihilatedAdd = latestChanges[index];
-
-                annihilatedAdd.Removed = true;
-
-                latestChanges[index] = annihilatedAdd;
-            }
-        }
-
-        // Latest version can decrease
-        return new StructureSchema(Id, Changes.TakeWhile(c => c.Version < Latest.Version)
-                                              .Concat(removeChanges)
-                                              .Concat(latestChanges.Where(x => !x.Removed).Select(x => x.Change))
-                                              .ToImmutableList());
-    }
-
-    //public StructureSchema MoveField(FieldKey key, int position, bool preserveVersion)
-    //{
-    //    if (position >= Latest.TotalFields)
-    //    {
-    //        throw new ArgumentException();
-    //    }
-
-    //    return Latest.TryGetField(key, out int index, out _) && index != position
-    //        ? new StructureSchema(Id, Changes.Add(new FieldMoved(key, position, GetNextVersion(preserveVersion))))
-    //        : this;
-    //}
+        _ => throw new NotImplementedException(),
+    };
 
     public bool Equals(StructureSchema? other)
     {
@@ -135,10 +73,6 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
 
     public override int GetHashCode() => HashCode.Combine(Id, Changes.Count);
 
-    private int GetNextVersion(bool preserveVersion) => preserveVersion
-        ? Latest.Version
-        : Latest.NextVersion;
-
     private IEnumerable<FieldDescription> GetFieldsForVersion(int version)
     {
         Dictionary<FieldKey, (int Index, FieldDescription Field, bool Removed)> fields = new(capacity: Changes.Count);
@@ -148,13 +82,13 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
         {
             switch (change)
             {
-                case { IsAdded: true, Added: {} field }:
+                case { IsAdded: true, Field: var field }:
                     // `Add` also validates sequence of changes as it throws when duplicate is found
                     fields.Add(field.Key, (i, field, false));
                     break;
 
-                case { IsRemoved: true, Key: {} key } when fields.TryGetValue(key, out var fieldToRemove)
-                                                           && !fieldToRemove.Removed:
+                case { IsRemoved: true, Key: var key } when fields.TryGetValue(key, out var fieldToRemove)
+                                                            && !fieldToRemove.Removed:
                     fieldToRemove.Removed = true;
                     fields[key] = fieldToRemove;
                     break;
@@ -207,36 +141,5 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatabl
                          .Where(x => !x.Removed)
                          .OrderBy(x => x.Index);
         }
-    }
-
-    public readonly record struct Change
-    {
-        private readonly FieldDescription? _added;
-        private readonly FieldKey? _key;
-
-        public readonly int Version;
-
-        public FieldDescription? Added => _added!.Value;
-
-        public FieldKey? Key => _key!.Value;
-
-        public bool IsAdded => _added != null;
-
-        public bool IsRemoved => _key != null;
-
-        public bool IsNop => _added == null && _key == null;
-
-        private Change(int version, in FieldDescription? added = null, FieldKey? key = null)
-        {
-            Version = version;
-            _added = added;
-            _key = key;
-        }
-
-        public static Change FieldAdded(in FieldDescription field, int version) => new(version, added: field);
-
-        public static Change FieldRemoved(in FieldKey key, int version) => new(version, key: key);
-
-        public bool Has(FieldKey key) => (Added?.Key ?? Key!.Value) == key;
     }
 }

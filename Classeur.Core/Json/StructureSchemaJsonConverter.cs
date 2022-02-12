@@ -93,7 +93,7 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
             
             switch (change)
             {
-                case {IsAdded: true, Added: {Key: var key, Label: var label, Type: var type}}:
+                case {IsAdded: true, Field: {Key: var key, Label: var label, Type: var type}}:
                     writer.WriteString(ChangeTypeFieldName, nameof(StructureSchema.Change.FieldAdded));
                     writer.WriteNumber(nameof(StructureSchema.Change.Version), change.Version);
                     writer.WritePropertyName(nameof(FieldDescription.Key));
