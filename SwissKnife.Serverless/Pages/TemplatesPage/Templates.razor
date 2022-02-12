@@ -12,10 +12,13 @@
 <h1>@Title</h1>
 
 <Button Clicked="AddTemplateAsync" Color="Color.Primary">Add template</Button>
-<Button Clicked="SaveTemplateAsync" Color="Color.Secondary">Save template</Button>
+<Button Clicked="SaveTemplateAsync" Color="Color.Secondary" Disabled="!_hasChanges">Save template</Button>
 <Button Clicked="DeleteTemplateAsync" Color="Color.Danger">Delete template</Button>
 
-<Select TValue="string" @bind-SelectedValue="_selectedTemplateId" role="list">
+<Select TValue="string"
+        SelectedValue="_selectedTemplateId"
+        SelectedValueChanged="async id => { _selectedTemplateId = id; await UpdateHasChangesAsync(); }"
+        role="list">
 	@foreach (StructureSchema template in _templates ?? Enumerable.Empty<StructureSchema>())
 	{
 		<SelectItem Value="template.Id.ToString()">@template.Id (@($"v{template.Latest.Version}"))</SelectItem>
@@ -48,6 +51,7 @@
 	private List<StructureSchema>? _templates;
 	private Templates_AddFieldModal? _addFieldDialog;
 	private string? _selectedTemplateId;
+	private bool _hasChanges;
 
 	private StructureSchema SelectedTemplate
 	{
@@ -67,12 +71,14 @@
 		await _repository.InsertAsync(new StructureSchema(id), CancellationToken.None);
 		_templates = await _repository.GetAllAsync(CancellationToken.None);
 		_selectedTemplateId = id.ToString();
+		_hasChanges = false;
 	}
 
 	private async Task SaveTemplateAsync()
 	{
 		await _repository.UpdateAsync(SelectedTemplate, CancellationToken.None);
 		await _js.AlertAsync("Saved!", CancellationToken.None);
+		_hasChanges = false;
 	}
 
 	private async Task DeleteTemplateAsync()
@@ -82,18 +88,40 @@
 		await _js.AlertAsync("Deleted!", CancellationToken.None);
 		_templates = await _repository.GetAllAsync(CancellationToken.None);
 		_selectedTemplateId = _templates.FirstOrDefault()?.Id.ToString();
+		await UpdateHasChangesAsync();
 	}
 
 	private async Task RemoveFieldAsync(FieldDescription field)
 	{
 		SelectedTemplate
 			= SelectedTemplate.RemoveFields(preserveVersion: await NeedToPreserveVersionAsync(), field.Key);
+		await UpdateHasChangesAsync();
 	}
 
 	private async Task OnFieldAddingAsync(FieldDescription field)
 	{
 		SelectedTemplate = SelectedTemplate.AddFields(preserveVersion: await NeedToPreserveVersionAsync(), field);
 		_addFieldDialog!.ResetLabel();
+		await UpdateHasChangesAsync();
+	}
+
+	private async Task UpdateHasChangesAsync()
+	{
+		if (_selectedTemplateId != null)
+		{
+			StructureSchema saved = await _repository.GetAsync(_selectedTemplateId, CancellationToken.None);
+
+			_hasChanges = !StructureSchemaVersion.IgnoringVersionComparer.Equals(SelectedTemplate.Latest, saved.Latest);
+
+			if (!_hasChanges)
+			{
+				SelectedTemplate = saved;
+			}
+		}
+		else
+		{
+			_hasChanges = false;
+		}
 	}
 
 	private async Task<bool> NeedToPreserveVersionAsync()

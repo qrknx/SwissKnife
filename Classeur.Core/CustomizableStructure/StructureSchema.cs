@@ -2,7 +2,7 @@
 
 namespace Classeur.Core.CustomizableStructure;
 
-public class StructureSchema : IEntity<IncoherentId>, IEntity<string>
+public class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatable<StructureSchema>
 {
     public readonly IncoherentId Id;
     public readonly ImmutableList<Change> Changes;
@@ -65,21 +65,45 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>
                                           .ToImmutableList());
     }
 
+    public bool Equals(StructureSchema? other)
+    {
+        if (ReferenceEquals(null, other))
+        {
+            return false;
+        }
+
+        return ReferenceEquals(this, other)
+               || Id == other.Id && Changes.SequenceEqual(other.Changes);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj))
+        {
+            return false;
+        }
+
+        return ReferenceEquals(this, obj)
+               || obj.GetType() == GetType() && Equals((StructureSchema)obj);
+    }
+
+    public override int GetHashCode() => HashCode.Combine(Id, Changes.Count);
+
     private int GetNextVersion(bool preserveVersion) => preserveVersion
         ? Latest.Version
         : Latest.Version + 1;
 
     private IEnumerable<FieldDescription> GetFieldsForVersion(int version)
     {
-        Dictionary<FieldKey, FieldDescription> fields = new(capacity: Changes.Count);
+        Dictionary<FieldKey, (int Index, FieldDescription Field)> fields = new(capacity: Changes.Count);
         int lastVersion = StructureSchemaVersion.Initial.Version;
 
-        foreach (Change change in Changes.TakeWhile(c => c.Version <= version))
+        for (int i = 0; i < Changes.Count && Changes[i] is var change && change.Version <= version; ++i)
         {
             switch (change)
             {
                 case FieldAdded(var field, _):
-                    fields.Add(field.Key, field);
+                    fields.Add(field.Key, (i, field));
                     break;
 
                 case FieldRemoved(var key, _):
@@ -94,7 +118,7 @@ public class StructureSchema : IEntity<IncoherentId>, IEntity<string>
         }
 
         return lastVersion == version
-            ? fields.Values
+            ? fields.Values.OrderBy(x => x.Index).Select(x => x.Field)
             : throw new ArgumentException();
     }
 
