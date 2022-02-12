@@ -31,7 +31,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
             : StructureSchemaVersion.Initial;
     }
 
-    public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version));
+    public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version, Changes));
 
     public StructureSchema AddChange(in Change change) => change switch
     {
@@ -76,12 +76,13 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
 
     public override int GetHashCode() => HashCode.Combine(Id, Changes.Count);
 
-    private IEnumerable<FieldDescription> GetFieldsForVersion(int version)
+    private static IEnumerable<FieldDescription> GetFieldsForVersion(int version, IEnumerable<Change> orderedChanges)
     {
-        Dictionary<FieldKey, (int Index, FieldDescription Field, bool Removed)> fields = new(capacity: Changes.Count);
+        Dictionary<FieldKey, (int Index, FieldDescription Field, bool Removed)> fields = new();
         int lastVersion = StructureSchemaVersion.Initial.Version;
 
-        for (int i = 0; i < Changes.Count && Changes[i] is var change && change.Version <= version; ++i)
+        foreach ((int i, Change change) in orderedChanges.TakeWhile(c => c.Version <= version)
+                                                         .Select((c, i) => (i, c)))
         {
             switch (change)
             {
