@@ -1,0 +1,24 @@
+﻿@using Blazorise;
+
+@implements IFormFragment<Int64UIFieldType>
+
+<Field>
+	<FieldLabel>Default</FieldLabel>
+	<TextEdit @bind-Text="@_field.Default"/>
+</Field>
+<Field>
+	<FieldLabel>Min</FieldLabel>
+	<TextEdit @bind-Text="@_field.Min"/>
+</Field>
+<Field>
+	<FieldLabel>Max</FieldLabel>
+	<TextEdit @bind-Text="@_field.Max"/>
+</Field>
+
+
+@code {
+
+	private Int64UIFieldType _field = new();
+
+	public Int64UIFieldType Data => _field;
+}

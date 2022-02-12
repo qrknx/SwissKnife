@@ -1,0 +1,20 @@
+﻿@using Blazorise;
+
+@implements IFormFragment<StringUIFieldType>
+
+<Field>
+	<FieldLabel>Default</FieldLabel>
+	<TextEdit @bind-Text="@_field.Default"/>
+</Field>
+<Field>
+	<FieldLabel>Max length</FieldLabel>
+	<TextEdit @bind-Text="@_field.MaxLength"/>
+</Field>
+
+
+@code {
+
+	private StringUIFieldType _field = new();
+
+	public StringUIFieldType Data => _field;
+}

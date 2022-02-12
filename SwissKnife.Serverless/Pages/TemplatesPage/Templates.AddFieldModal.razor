@@ -1,0 +1,108 @@
+﻿@using System.Text
+@using Blazorise;
+@using Microsoft.AspNetCore.Components
+@using Classeur.Core.CustomizableStructure
+@using DotNetToolbox
+@using SwissKnife.Serverless.Pages.TemplatesPage.Types
+
+<Modal @ref="_addFieldDialog">
+	<ModalContent Centered="true">
+		<ModalHeader>
+			<ModalTitle>Add field</ModalTitle>
+			<CloseButton/>
+		</ModalHeader>
+		<ModalBody>
+			<Field>
+				<FieldLabel>Label</FieldLabel>
+				<TextEdit @bind-Text="_label"/>
+			</Field>
+			<Field>
+				<FieldLabel>Type</FieldLabel>
+				<Select TValue="string" @bind-SelectedValue="_selectedFieldId">
+					@foreach (var known in IUIFieldType.All)
+					{
+						<SelectItem Value="known.Id">@known.Name</SelectItem>
+					}
+				</Select>
+			</Field>
+			<DynamicComponent @ref="_fieldCreateForm" Type="SelectedField.FormFragmentForCreate" />
+		</ModalBody>
+		<ModalFooter>
+			<Button Color="Color.Primary" Clicked="AddFieldAsync">Add</Button>
+		</ModalFooter>
+	</ModalContent>
+</Modal>
+
+@code {
+
+	private Modal _addFieldDialog = null!;
+	private DynamicComponent _fieldCreateForm = null!;
+
+	private string _label = "";
+
+	private IUIFieldType[] _newFields = IUIFieldType.All.ToArray(t => (IUIFieldType)Activator.CreateInstance(t.Type)!);
+
+	private string _selectedFieldId = IUIFieldType.All.First().Id;
+
+	private IUIFieldType SelectedField => _newFields.First(f => f.GetType().FullName == _selectedFieldId);
+
+	public Modal Modal => _addFieldDialog;
+
+	private FieldKey FieldKey
+	{
+		get
+		{
+			List<List<char>> chunks = new()
+			{
+				new(),
+			};
+
+			foreach (char c in _label)
+			{
+				if (c == '_' || char.IsLetterOrDigit(c))
+				{
+					chunks[^1].Add(char.ToLower(c));
+				}
+				else if (chunks[^1].Any())
+				{
+					chunks.Add(new());
+				}
+			}
+
+			if (!chunks[0].Any())
+			{
+				throw new Exception();
+			}
+
+			if (!chunks[^1].Any())
+			{
+				chunks.RemoveAt(chunks.Count - 1);
+			}
+
+			StringBuilder stringBuilder = new(!char.IsDigit(chunks[0][0]) ? "" : "_",
+			                                  capacity: chunks.Sum(c => c.Count) + chunks.Count);
+
+			stringBuilder.AppendJoin("", chunks[0]);
+
+			foreach (List<char> chunk in chunks.Skip(1))
+			{
+				stringBuilder.Append('_').AppendJoin("", chunk);
+			}
+
+			return new FieldKey(stringBuilder.ToString());
+		}
+	}
+
+	[Parameter]
+	public EventCallback<FieldDescription> FieldAdding { get; set; }
+
+	public void ResetLabel() => _label = "";
+
+	private async Task AddFieldAsync()
+	{
+		var formFragment = (IFormFragment<IUIFieldType>)_fieldCreateForm.Instance!;
+
+		await FieldAdding.InvokeAsync(formFragment.Data.GetDescription(FieldKey, _label));
+	}
+
+}
