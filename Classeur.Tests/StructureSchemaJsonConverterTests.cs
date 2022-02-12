@@ -9,6 +9,8 @@ using Xunit;
 
 namespace Classeur.Tests;
 
+using static StructureSchema.Change;
+
 public class StructureSchemaJsonConverterTests
 {
     private static readonly IncoherentId Id = new(123);
@@ -65,9 +67,10 @@ public class StructureSchemaJsonConverterTests
 
             Add((new[]
                  {
-                     StructureSchema.Change.FieldAdded(new(new("f1"), "F1", new StringFieldType(10, "abc")), 1),
-                     StructureSchema.Change.FieldAdded(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)), 1),
-                     StructureSchema.Change.FieldRemoved(new("f1"), 2),
+                     FieldAdded(new(new("f1"), "F1", new StringFieldType(10, "abc")), 1),
+                     FieldAdded(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)), 1),
+                     FieldMoved(new("f2"), 0, 2),
+                     FieldRemoved(new("f1"), 3),
                  },
                  new
                  {
@@ -103,8 +106,15 @@ public class StructureSchemaJsonConverterTests
                          },
                          new
                          {
-                             ChangeType = "FieldRemoved",
+                             ChangeType = "FieldMoved",
                              Version = 2,
+                             Key = "f2",
+                             Position = 0,
+                         },
+                         new
+                         {
+                             ChangeType = "FieldRemoved",
+                             Version = 3,
                              Key = "f1",
                          },
                      },

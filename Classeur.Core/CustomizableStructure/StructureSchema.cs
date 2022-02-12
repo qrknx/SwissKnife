@@ -35,16 +35,19 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
 
     public StructureSchema AddChange(in Change change) => change switch
     {
-        { Version: var v} when v != Latest.Version && v != Latest.NextVersion => throw new ArgumentException(),
+        { Version: var v } when v != Latest.Version && v != Latest.NextVersion => throw new ArgumentException(),
 
-        { IsAdded: true, Field.Key: var key } when !Changes.Any(c => c.Has(key))
-            => new StructureSchema(Id, Changes.Add(change)),
+        { IsAdded: true, Field.Key: var key } when !Changes.Any(c => c.Has(key)) => SelfWith(change),
 
         { IsAdded: true } => throw new ArgumentException(),
 
-        { IsRemoved: true, Key: var key } when Latest.Has(key) => new StructureSchema(Id, Changes.Add(change)),
+        { IsRemoved: true, Key: var key } when Latest.Has(key) => SelfWith(change),
 
         { IsRemoved: true } or { IsNop: true } => this,
+
+        { IsMoved: true, Key: var key, Position: var position } when MoveMutates(key, position) => SelfWith(change),
+
+        { IsMoved: true } => this,
 
         _ => throw new NotImplementedException(),
     };
@@ -96,33 +99,33 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
                 case { IsRemoved: true }:
                     throw new ArgumentException();
 
-                //case FieldMoved(var key, var position, _):
-                //    var orderedFields = OrderFieldsByIndex()
-                //                        .Select((x, j) =>
-                //                        {
-                //                            x.Index = j;
-                //                            return x;
-                //                        })
-                //                        .ToImmutableList();
+                case { IsMoved: true, Key: var key, Position: var position }:
+                    var orderedFields = OrderFieldsSnapshotByIndex()
+                                        .Select((x, j) =>
+                                        {
+                                            x.Index = j;
+                                            return x;
+                                        })
+                                        .ToImmutableList();
 
-                //    int currentPosition = orderedFields.FindIndex(x => x.Field.Key == key);
+                    int currentPosition = orderedFields.FindIndex(x => x.Field.Key == key);
 
-                //    if (currentPosition == -1 || currentPosition == position)
-                //    {
-                //        throw new ArgumentException();
-                //    }
+                    if (currentPosition == -1 || currentPosition == position)
+                    {
+                        throw new ArgumentException();
+                    }
 
-                //    var fieldToMove = orderedFields[currentPosition];
+                    var fieldToMove = orderedFields[currentPosition];
 
-                //    fields = orderedFields.RemoveAt(currentPosition)
-                //                          .Insert(position, fieldToMove)
-                //                          .Select((x, j) =>
-                //                          {
-                //                              x.Index = j;
-                //                              return x;
-                //                          })
-                //                          .ToDictionary(x => x.Field.Key);
-                //    break;
+                    fields = orderedFields.RemoveAt(currentPosition)
+                                          .Insert(position, fieldToMove)
+                                          .Select((x, j) =>
+                                          {
+                                              x.Index = j;
+                                              return x;
+                                          })
+                                          .ToDictionary(x => x.Field.Key);
+                    break;
 
                 default:
                     throw new NotImplementedException();
@@ -132,14 +135,21 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         }
 
         return lastVersion == version
-            ? OrderFieldsByIndex().Select(x => x.Field)
+            ? OrderFieldsSnapshotByIndex().Select(x => x.Field)
             : throw new ArgumentException();
 
-        IEnumerable<(int Index, FieldDescription Field, bool Removed)> OrderFieldsByIndex()
+        IEnumerable<(int Index, FieldDescription Field, bool Removed)> OrderFieldsSnapshotByIndex()
         {
             return fields.Values
                          .Where(x => !x.Removed)
                          .OrderBy(x => x.Index);
         }
     }
+
+    private StructureSchema SelfWith(in Change change) => new(Id, Changes.Add(change));
+
+    private bool MoveMutates(FieldKey key, int position)
+        => MathUtils.Intersects(position, min: 0, max: Latest.TotalFields)
+            ? Latest.TryGetField(key, out int index, out _) && index != position
+            : throw new ArgumentException();
 }

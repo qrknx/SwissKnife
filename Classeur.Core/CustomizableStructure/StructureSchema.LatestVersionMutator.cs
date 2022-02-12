@@ -10,7 +10,11 @@ public partial class StructureSchema
     {
         public readonly StructureSchema Schema;
 
-        public LatestVersionMutator(StructureSchema schema) => Schema = schema;
+        public LatestVersionMutator(StructureSchema schema)
+        {
+            Schema = schema;
+            // todo check if schema is valid to preserve version
+        }
 
         public LatestVersionMutator AddField(FieldDescription field, bool preserveVersion) => new(
             Schema.AddChange(FieldAdded(field, GetNextVersion(preserveVersion))));
@@ -47,20 +51,16 @@ public partial class StructureSchema
             return new StructureSchema(Schema.Id, Schema.Changes.RemoveAt(indexToRemove));
         }
 
+        public StructureSchema MoveField(FieldKey key, int position, bool preserveVersion)
+        {
+            throw new NotImplementedException();
+            //    return Latest.TryGetField(key, out int index, out _) && index != position
+            //        ? new StructureSchema(Id, Changes.Add(new FieldMoved(key, position, GetNextVersion(preserveVersion))))
+            //        : this;
+        }
+
         private int GetNextVersion(bool preserveVersion) => preserveVersion
             ? Schema.Latest.Version
             : Schema.Latest.NextVersion;
-
-        //public StructureSchema MoveField(FieldKey key, int position, bool preserveVersion)
-        //{
-        //    if (position >= Latest.TotalFields)
-        //    {
-        //        throw new ArgumentException();
-        //    }
-
-        //    return Latest.TryGetField(key, out int index, out _) && index != position
-        //        ? new StructureSchema(Id, Changes.Add(new FieldMoved(key, position, GetNextVersion(preserveVersion))))
-        //        : this;
-        //}
     }
 }
