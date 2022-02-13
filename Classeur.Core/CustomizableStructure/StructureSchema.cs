@@ -33,21 +33,21 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
 
     public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version, Changes));
 
+    /// <remarks>
+    /// This method contains some preliminary checks before the main validation which takes place in
+    /// <see cref="GetFieldsForVersion"/>
+    /// </remarks>
     public StructureSchema AddChange(in Change change) => change switch
     {
         { Version: var v } when v != Latest.Version && v != Latest.NextVersion => throw new ArgumentException(),
 
-        { IsAdded: true, Field.Key: var key } when !Changes.Any(c => c.Has(key)) => SelfWith(change),
-
-        { IsAdded: true } => throw new ArgumentException(),
+        { IsAdded: true } => SelfWith(change),
 
         { IsRemoved: true, Key: var key } when Latest.Has(key) => SelfWith(change),
 
-        { IsRemoved: true } or { IsNop: true } => this,
-
         { IsMoved: true, Key: var key, Position: var position } when MoveMutates(key, position) => SelfWith(change),
 
-        { IsMoved: true } => this,
+        { IsRemoved: true } or { IsMoved: true } or { IsNop: true } => this,
 
         _ => throw new NotImplementedException(),
     };
@@ -81,13 +81,14 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         Dictionary<FieldKey, (int Index, FieldDescription Field, bool Removed)> fields = new();
         int lastVersion = StructureSchemaVersion.Initial.Version;
 
-        foreach ((int i, Change change) in orderedChanges.TakeWhile(c => c.Version <= version)
+        foreach ((int i, Change change) in orderedChanges.Where(c => !c.IsNop)
+                                                         .TakeWhile(c => c.Version <= version)
                                                          .Select((c, i) => (i, c)))
         {
             switch (change)
             {
                 case { IsAdded: true, Field: var field }:
-                    // `Add` also validates sequence of changes as it throws when duplicate is found
+                    // `Add` validates sequence of changes as it throws when duplicate is found
                     fields.Add(field.Key, (i, field, false));
                     break;
 

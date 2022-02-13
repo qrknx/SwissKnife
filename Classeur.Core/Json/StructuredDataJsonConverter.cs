@@ -55,10 +55,7 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
             structuredData = field.Type switch
             {
                 StringFieldType => structuredData.Set(key, reader.GetString() ?? throw new JsonException()),
-                Int64FieldType => structuredData.Set(key,
-                                                     reader.TryGetInt64(out long int64)
-                                                         ? int64
-                                                         : throw new JsonException()),
+                Int64FieldType => structuredData.Set(key, reader.GetInt64()),
                 _ => throw new NotImplementedException(),
             };
 

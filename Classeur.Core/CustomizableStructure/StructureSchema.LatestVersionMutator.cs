@@ -38,6 +38,9 @@ public partial class StructureSchema
             ? UpdateInLatestVersion(FieldMoved(key, position, Latest.Version))
             : Schema.AddChange(FieldMoved(key, position, Latest.NextVersion));
 
+        /// <remarks>
+        /// This method shouldn't be public! It accepts only specific changes.
+        /// </remarks>
         private StructureSchema UpdateInLatestVersion(in Change change)
         {
             int latestVersion = Latest.Version;

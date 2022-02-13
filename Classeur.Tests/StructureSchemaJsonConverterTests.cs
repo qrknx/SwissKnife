@@ -1,31 +1,14 @@
 using System;
-using System.Collections.Immutable;
 using System.IO;
+using System.Text;
 using System.Text.Json;
-using Classeur.Core;
 using Classeur.Core.CustomizableStructure;
-using Classeur.Core.Json;
 using Xunit;
 
 namespace Classeur.Tests;
 
-using static StructureSchema.Change;
-
-public class StructureSchemaJsonConverterTests
+public partial class StructureSchemaJsonConverterTests
 {
-    private static readonly IncoherentId Id = new(123);
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        Converters =
-        {
-            new StructureSchemaJsonConverter(ImmutableDictionary<string, Type>.Empty
-                                                                              .Add("String", typeof(StringFieldType))
-                                                                              .Add("Int64", typeof(Int64FieldType))),
-            IncoherentIdJsonConverter.Instance,
-            FieldKeyJsonConverter.Instance,
-        },
-    };
-
     [Theory]
     [ClassData(typeof(TestCases))]
     public void SerializeAndDeserialize((StructureSchema.Change[] Changes, object NonSerializedJson) @case)
@@ -54,71 +37,32 @@ public class StructureSchemaJsonConverterTests
         Assert.Equal(expected: @case.Changes, deserializedSchema.Changes);
     }
 
-    private class TestCases : TheoryData<(StructureSchema.Change[] Changes, object NonSerializedJson)>
+    [Fact(Skip = "External code")]
+    public void Deserialize_BuiltIn()
     {
-        public TestCases()
-        {
-            Add((Array.Empty<StructureSchema.Change>(),
-                 new
-                 {
-                     Id = Id.UnderlyingValue,
-                     Changes = Array.Empty<object>(),
-                 }));
+        string validIntString = int.MaxValue.ToString();
+        string invalidIntString = $"1{int.MaxValue}";
 
-            Add((new[]
-                 {
-                     FieldAdded(new(new("f1"), "F1", new StringFieldType(10, "abc")), 1),
-                     FieldAdded(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)), 1),
-                     FieldMoved(new("f2"), 0, 2),
-                     FieldRemoved(new("f1"), 3),
-                 },
-                 new
-                 {
-                     Id = Id.UnderlyingValue,
-                     Changes = new object[]
-                     {
-                         new
-                         {
-                             ChangeType = "FieldAdded",
-                             Version = 1,
-                             Key = "f1",
-                             Label = "F1",
-                             TypeId = "String",
-                             Type = new
-                             {
-                                 MaxLength = 10,
-                                 Default = "abc",
-                             },
-                         },
-                         new
-                         {
-                             ChangeType = "FieldAdded",
-                             Version = 1,
-                             Key = "f2",
-                             Label = "F2",
-                             TypeId = "Int64",
-                             Type = new
-                             {
-                                 Min = -100,
-                                 Max = 200,
-                                 Default = 100,
-                             },
-                         },
-                         new
-                         {
-                             ChangeType = "FieldMoved",
-                             Version = 2,
-                             Key = "f2",
-                             Position = 0,
-                         },
-                         new
-                         {
-                             ChangeType = "FieldRemoved",
-                             Version = 3,
-                             Key = "f1",
-                         },
-                     },
-                 }));
-        }
+        byte[] validBytes = GetBytes(validIntString);
+
+        Utf8JsonReader reader = new(validBytes);
+
+        reader.Read();
+        
+        Assert.Equal(expected: int.MaxValue, reader.GetInt32());
+        Assert.Equal(expected: int.MaxValue, JsonSerializer.Deserialize<int>(validIntString));
+
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<int>(invalidIntString));
+        Assert.Throws<FormatException>(() =>
+        {
+            byte[] bytes = GetBytes(invalidIntString);
+
+            Utf8JsonReader reader = new(bytes);
+
+            reader.Read();
+            reader.GetInt32();
+        });
+
+        static byte[] GetBytes(string s) => Encoding.UTF8.GetBytes(s);
     }
 }

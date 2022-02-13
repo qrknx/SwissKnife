@@ -154,10 +154,7 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
 
         reader.MoveIfEquals(nameof(StructureSchema.Change.Version));
 
-        if (!reader.TryGetInt32(out int version))
-        {
-            throw new JsonException();
-        }
+        int version = reader.GetInt32();
 
         reader.Read();
 
