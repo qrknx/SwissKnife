@@ -12,7 +12,6 @@
 <h1>@Title</h1>
 
 <Button Clicked="AddTemplateAsync" Color="Color.Primary">Add template</Button>
-<Button Clicked="SaveTemplateAsync" Color="Color.Secondary" Disabled="@(!_hasChanges)">Save template</Button>
 <Button Clicked="DeleteTemplateAsync" Color="Color.Danger">Delete template</Button>
 
 <Select TValue="string"
@@ -31,12 +30,36 @@
 		Add field
 	</Button>
 
+	<Button Clicked="SaveChangesAsync" Color="Color.Success" Disabled="@(!_hasChanges)">Save changes</Button>
+
 	<ListGroup>
 		@foreach (FieldDescription field in SelectedTemplate.Latest.Fields)
 		{
 			<ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center" title="@field">
 				@field.Label
-				<Badge Pill CloseClicked="@(() => RemoveFieldAsync(field))" Color="Color.Danger" />
+				<span>
+					@if (CanMove(field, relativeMove: -1, out int upperPosition))
+					{
+						<button @onclick="@(async () => await MoveAsync(field, upperPosition))"
+						        class="border-0 bg-transparent"
+						        title="Move field up">
+							<span class="oi oi-arrow-circle-top text-info" aria-hidden="true"></span>
+						</button>
+					}
+					@if (CanMove(field, relativeMove: 1, out int lowerPosition))
+					{
+						<button @onclick="@(async () => await MoveAsync(field, lowerPosition))"
+						        class="border-0 bg-transparent"
+						        title="Move field down">
+							<span class="oi oi-arrow-circle-bottom text-info" aria-hidden="true"></span>
+						</button>
+					}
+					<button @onclick="@(async () => await RemoveFieldAsync(field))"
+					        class="border-0 bg-transparent"
+					        title="Remove field">
+						<span class="oi oi-circle-x text-danger" aria-hidden="true"></span>
+					</button>
+				</span>
 			</ListGroupItem>
 		}
 	</ListGroup>
@@ -74,7 +97,7 @@
 		_hasChanges = false;
 	}
 
-	private async Task SaveTemplateAsync()
+	private async Task SaveChangesAsync()
 	{
 		await _repository.UpdateAsync(SelectedTemplate, CancellationToken.None);
 		await _js.AlertAsync("Saved!", CancellationToken.None);
@@ -88,6 +111,25 @@
 		await _js.AlertAsync("Deleted!", CancellationToken.None);
 		_templates = await _repository.GetAllAsync(CancellationToken.None);
 		_selectedTemplateId = _templates.FirstOrDefault()?.Id.ToString();
+		await UpdateHasChangesAsync();
+	}
+
+	private bool CanMove(FieldDescription field, int relativeMove, out int newPosition)
+	{
+		newPosition = SelectedTemplate.Latest
+		                              .Fields.Select((f, i) => (Index: i, Field: f))
+		                              .First(x => x.Field.Key == field.Key)
+		                              .Index + relativeMove;
+
+		return MathUtils.Intersects(newPosition, min: 0, max: SelectedTemplate.Latest.TotalFields - 1);
+	}
+
+	private async Task MoveAsync(FieldDescription field, int position)
+	{
+		SelectedTemplate = SelectedTemplate.ToLatestVersionMutator()
+		                                   .MoveField(field.Key,
+		                                              position,
+		                                              preserveVersion: await HasPendingChangesAsync());
 		await UpdateHasChangesAsync();
 	}
 

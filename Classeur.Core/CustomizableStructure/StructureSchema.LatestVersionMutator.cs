@@ -6,13 +6,15 @@ using static StructureSchema.Change;
 
 public partial class StructureSchema
 {
-    public LatestVersionMutator ToLatestVersionMutator() => new(this);
+    public LatestVersionMutator ToLatestVersionMutator() => new(schema: this);
 
     public readonly struct LatestVersionMutator
     {
         public readonly StructureSchema Schema;
 
         private StructureSchemaVersion Latest => Schema.Latest;
+
+        private ImmutableList<Change> Changes => Schema.Changes;
 
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
@@ -41,15 +43,15 @@ public partial class StructureSchema
             int latestVersion = Latest.Version;
 
             List<FieldDescription> allNewestFields
-                = GetFieldsForVersion(latestVersion, Schema.Changes.Append(change)).ToList();
+                = GetFieldsForVersion(latestVersion, Changes.Append(change)).ToList();
 
-            int totalPreviousChanges = Schema.Changes.TakeWhile(c => c.Version < latestVersion).Count();
+            int totalPreviousChanges = Changes.TakeWhile(c => c.Version < latestVersion).Count();
 
             List<FieldDescription> previousFields = GetFieldsForVersion(
                     totalPreviousChanges > 0
-                        ? Schema.Changes[totalPreviousChanges - 1].Version
+                        ? Changes[totalPreviousChanges - 1].Version
                         : StructureSchemaVersion.Initial.Version,
-                    Schema.Changes.Take(totalPreviousChanges))
+                    Changes.Take(totalPreviousChanges))
                 .ToList();
 
             List<FieldDescription> removed = previousFields.Except(allNewestFields).ToList();
@@ -82,12 +84,11 @@ public partial class StructureSchema
             }
 
             return new StructureSchema(Schema.Id,
-                                       Schema.Changes
-                                             .Take(totalPreviousChanges)
-                                             .Concat(removed.Select(f => FieldRemoved(f.Key, latestVersion)))
-                                             .Concat(added.Select(f => FieldAdded(f, latestVersion)))
-                                             .Concat(moves)
-                                             .ToImmutableList());
+                                       Changes.Take(totalPreviousChanges)
+                                              .Concat(removed.Select(f => FieldRemoved(f.Key, latestVersion)))
+                                              .Concat(added.Select(f => FieldAdded(f, latestVersion)))
+                                              .Concat(moves)
+                                              .ToImmutableList());
         }
     }
 }
