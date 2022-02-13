@@ -97,7 +97,7 @@ public partial class StructureSchema
 
                 if (fieldsToMove[i].Key != keyToMatch)
                 {
-                    // Looking for a field to move it to position `i`
+                    // Looking for a field to move to position `i`
                     (int k, FieldDescription fieldToMove) = fieldsToMove.Skip(i + 1)
                                                                         .Select((f, j) => (Index: i + 1 + j, Field: f))
                                                                         .First(x => x.Field.Key == keyToMatch);

@@ -4,8 +4,9 @@ using Microsoft.JSInterop;
 
 namespace SwissKnife.Serverless.Services;
 
-public class LocalStorageRepository<T> : IRepository<T, string>
-    where T : IEntity<string>
+public class LocalStorageRepository<T, TKey> : IRepository<T, TKey>
+    where T : IEntity<TKey>
+    where TKey : IEquatable<TKey>
 {
     private readonly IJSRuntime _js;
     private readonly string _collectionId;
@@ -22,7 +23,7 @@ public class LocalStorageRepository<T> : IRepository<T, string>
     {
         List<T> entities = await GetAllAsync(token);
 
-        if (entities.Any(e => e.Id == entity.Id))
+        if (entities.Any(e => e.Id.Equals(entity.Id)))
         {
             throw new Exception();
         }
@@ -34,11 +35,11 @@ public class LocalStorageRepository<T> : IRepository<T, string>
         return entity;
     }
 
-    public async Task<T> GetAsync(string key, CancellationToken token)
+    public async Task<T> GetAsync(TKey key, CancellationToken token)
     {
         List<T> entities = await GetAllAsync(token);
 
-        return entities.First(e => e.Id == key);
+        return entities.First(e => e.Id.Equals(key));
     }
 
     public async Task<List<T>> GetAllAsync(CancellationToken token)
@@ -52,18 +53,18 @@ public class LocalStorageRepository<T> : IRepository<T, string>
     {
         List<T> entities = await GetAllAsync(token);
 
-        entities[entities.FindIndex(e => e.Id == entity.Id)] = entity;
+        entities[entities.FindIndex(e => e.Id.Equals(entity.Id))] = entity;
 
         await SaveAsync(entities, token);
 
         return entity;
     }
 
-    public async Task DeleteAsync(string key, CancellationToken token)
+    public async Task DeleteAsync(TKey key, CancellationToken token)
     {
         List<T> entities = await GetAllAsync(token);
 
-        entities.RemoveAt(entities.FindIndex(e => e.Id == key));
+        entities.RemoveAt(entities.FindIndex(e => e.Id.Equals(key)));
 
         await SaveAsync(entities, token);
     }

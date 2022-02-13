@@ -5,7 +5,7 @@
 @using Classeur.Core.CustomizableStructure
 
 @inject IJSRuntime _js;
-@inject IRepository<StructureSchema, string> _repository;
+@inject IRepository<Template, string> _repository;
 
 <PageTitle>@Title</PageTitle>
 
@@ -18,9 +18,9 @@
         SelectedValue="_selectedTemplateId"
         SelectedValueChanged="async id => { _selectedTemplateId = id; await UpdateHasChangesAsync(); }"
         role="list">
-	@foreach (StructureSchema template in _templates ?? Enumerable.Empty<StructureSchema>())
+	@foreach (Template template in _templates ?? Enumerable.Empty<Template>())
 	{
-		<SelectItem Value="template.Id.ToString()">@template.Id (@($"v{template.Latest.Version}"))</SelectItem>
+		<SelectItem Value="template.Id.ToString()">@template.Name (@($"v{template.Schema.Latest.Version}"))</SelectItem>
 	}
 </Select>
 
@@ -33,7 +33,7 @@
 	<Button Clicked="SaveChangesAsync" Color="Color.Success" Disabled="@(!_hasChanges)">Save changes</Button>
 
 	<ListGroup>
-		@foreach (FieldDescription field in SelectedTemplate.Latest.Fields)
+		@foreach (FieldDescription field in SelectedTemplate.Schema.Latest.Fields)
 		{
 			<ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center" title="@field">
 				@field.Label
@@ -71,12 +71,12 @@
 
 	private const string Title = "Templates";
 
-	private List<StructureSchema>? _templates;
+	private List<Template>? _templates;
 	private Templates_AddFieldModal? _addFieldDialog;
 	private string? _selectedTemplateId;
 	private bool _hasChanges;
 
-	private StructureSchema SelectedTemplate
+	private Template SelectedTemplate
 	{
 		get => _templates!.First(t => t.Id == IncoherentId.Parse(_selectedTemplateId!));
 		set => _templates![_templates.FindIndex(t => t.Id == value.Id)] = value;
@@ -91,7 +91,7 @@
 	private async Task AddTemplateAsync()
 	{
 		IncoherentId id = IncoherentId.Generate();
-		await _repository.InsertAsync(new StructureSchema(id), CancellationToken.None);
+		await _repository.InsertAsync(new Template(id.ToString(),  new StructureSchema(id)), CancellationToken.None);
 		_templates = await _repository.GetAllAsync(CancellationToken.None);
 		_selectedTemplateId = id.ToString();
 		_hasChanges = false;
@@ -116,35 +116,50 @@
 
 	private bool CanMove(FieldDescription field, int relativeMove, out int newPosition)
 	{
-		newPosition = SelectedTemplate.Latest
+		newPosition = SelectedTemplate.Schema
+		                              .Latest
 		                              .Fields.Select((f, i) => (Index: i, Field: f))
 		                              .First(x => x.Field.Key == field.Key)
 		                              .Index + relativeMove;
 
-		return MathUtils.Intersects(newPosition, min: 0, max: SelectedTemplate.Latest.TotalFields - 1);
+		return MathUtils.Intersects(newPosition, min: 0, max: SelectedTemplate.Schema.Latest.TotalFields - 1);
 	}
 
 	private async Task MoveAsync(FieldDescription field, int position)
 	{
-		SelectedTemplate = SelectedTemplate.ToLatestVersionMutator()
-		                                   .MoveField(field.Key,
-		                                              position,
-		                                              preserveVersion: await HasPendingChangesAsync());
+		SelectedTemplate = SelectedTemplate with
+		{
+			Schema = SelectedTemplate.Schema
+			                         .ToLatestVersionMutator()
+			                         .MoveField(field.Key,
+			                                    position,
+			                                    preserveVersion: await HasPendingChangesAsync()),
+		};
+
 		await UpdateHasChangesAsync();
 	}
 
 	private async Task RemoveFieldAsync(FieldDescription field)
 	{
-		SelectedTemplate = SelectedTemplate.ToLatestVersionMutator()
-		                                   .RemoveField(field.Key, preserveVersion: await HasPendingChangesAsync());
+		SelectedTemplate = SelectedTemplate with
+		{
+			Schema = SelectedTemplate.Schema
+			                         .ToLatestVersionMutator()
+			                         .RemoveField(field.Key, preserveVersion: await HasPendingChangesAsync()),
+		};
+
 		await UpdateHasChangesAsync();
 	}
 
 	private async Task OnFieldAddingAsync(FieldDescription field)
 	{
-		SelectedTemplate = SelectedTemplate.ToLatestVersionMutator()
-		                                   .AddField(field, preserveVersion: await HasPendingChangesAsync())
-		                                   .Schema;
+		SelectedTemplate = SelectedTemplate with
+		{
+			Schema = SelectedTemplate.Schema
+			                         .ToLatestVersionMutator()
+			                         .AddField(field, preserveVersion: await HasPendingChangesAsync())
+			                         .Schema,
+		};
 		_addFieldDialog!.ResetLabel();
 		await UpdateHasChangesAsync();
 	}
@@ -153,9 +168,9 @@
 	{
 		if (_selectedTemplateId != null)
 		{
-			StructureSchema saved = await _repository.GetAsync(_selectedTemplateId, CancellationToken.None);
+			Template saved = await _repository.GetAsync(_selectedTemplateId, CancellationToken.None);
 
-			_hasChanges = SelectedTemplate.Latest.Version != saved.Latest.Version;
+			_hasChanges = SelectedTemplate.Schema.Latest.Version != saved.Schema.Latest.Version;
 		}
 		else
 		{
@@ -165,8 +180,8 @@
 
 	private async Task<bool> HasPendingChangesAsync()
 	{
-		StructureSchema saved = await _repository.GetAsync(_selectedTemplateId!, CancellationToken.None);
-		return saved.Latest.Version != SelectedTemplate.Latest.Version;
+		Template saved = await _repository.GetAsync(_selectedTemplateId!, CancellationToken.None);
+		return saved.Schema.Latest.Version != SelectedTemplate.Schema.Latest.Version;
 	}
 
 }
