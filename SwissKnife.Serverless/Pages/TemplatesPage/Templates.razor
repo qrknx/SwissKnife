@@ -51,6 +51,7 @@
 							<span class="oi oi-arrow-circle-top text-info" aria-hidden="true"></span>
 						</button>
 					}
+
 					@if (CanMove(field, relativeMove: 1, out int lowerPosition))
 					{
 						<button @onclick="@(async () => await MoveAsync(field, lowerPosition))"
@@ -59,6 +60,7 @@
 							<span class="oi oi-arrow-circle-bottom text-info" aria-hidden="true"></span>
 						</button>
 					}
+
 					<button @onclick="@(async () => await RemoveFieldAsync(field))"
 					        class="border-0 bg-transparent"
 					        title="Remove field">

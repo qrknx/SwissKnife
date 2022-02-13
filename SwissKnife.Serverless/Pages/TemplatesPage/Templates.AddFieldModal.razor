@@ -50,8 +50,6 @@
 
 	public Modal Modal => _addFieldDialog;
 
-	private FieldKey FieldKey => FieldKey.For(_label);
-
 	[Parameter]
 	public EventCallback<FieldDescription> FieldAdding { get; set; }
 
@@ -67,7 +65,7 @@
 	{
 		var formFragment = (IFormFragment<IUIFieldType>)_fieldCreateForm.Instance!;
 
-		await FieldAdding.InvokeAsync(formFragment.Data.GetDescription(FieldKey, _label));
+		await FieldAdding.InvokeAsync(formFragment.Data.GetDescription(FieldKey.For(_label), _label));
 	}
 
 }
