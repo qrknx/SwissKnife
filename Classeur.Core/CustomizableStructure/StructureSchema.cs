@@ -150,7 +150,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
     private StructureSchema SelfWith(in Change change) => new(Id, Changes.Add(change));
 
     private bool MoveMutates(FieldKey key, int position)
-        => MathUtils.Intersects(position, min: 0, max: Latest.TotalFields)
+        => MathUtils.Intersects(position, min: 0, max: Latest.TotalFields - 1)
             ? Latest.TryGetField(key, out int index, out _) && index != position
             : throw new ArgumentException();
 }
