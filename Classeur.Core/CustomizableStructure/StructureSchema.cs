@@ -78,7 +78,8 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
 
     private static IEnumerable<FieldDescription> GetFieldsForVersion(int version, IEnumerable<Change> orderedChanges)
     {
-        Dictionary<FieldKey, (int Index, FieldDescription Field, bool Removed)> fields = new();
+        Dictionary<FieldKey, FieldState> fields = new();
+
         int lastVersion = StructureSchemaVersion.Initial.Version;
 
         foreach ((int i, Change change) in orderedChanges.Where(c => !c.IsNop)
@@ -87,44 +88,57 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         {
             switch (change)
             {
-                case { IsAdded: true, Field: var field }:
-                    // `Add` validates sequence of changes as it throws when duplicate is found
-                    fields.Add(field.Key, (i, field, false));
+                case { IsAdded: true, Field: { Key: var key } field } when !fields.ContainsKey(key):
+                    fields.Add(field.Key, new FieldState
+                    {
+                        Index = i,
+                        Field = field,
+                        Removed = false,
+                    });
                     break;
 
-                case { IsRemoved: true, Key: var key } when fields.TryGetValue(key, out var fieldToRemove)
+                // Restore case
+                case { IsAdded: true, Field: { Key: var key } field }
+                    when fields[key] is { Removed: true, Field: var existingField } existing
+                         && existingField.Equals(field):
+                    fields[key] = existing with
+                    {
+                        Removed = false,
+                    };
+                    break;
+
+                case { IsRemoved: true, Key: var key } when fields.TryGetValue(key, out FieldState fieldToRemove)
                                                             && !fieldToRemove.Removed:
-                    fieldToRemove.Removed = true;
-                    fields[key] = fieldToRemove;
+                    fields[key] = fieldToRemove with
+                    {
+                        Removed = true,
+                    };
                     break;
 
                 case { IsRemoved: true }:
                     throw new ArgumentException();
 
-                case { IsMoved: true, Key: var key, Position: var position }:
-                    var orderedFields = OrderFieldsSnapshotByIndex()
-                                        .Select((x, j) =>
-                                        {
-                                            x.Index = j;
-                                            return x;
-                                        })
-                                        .ToImmutableList();
+                case { IsMoved: true, Key: var key, Position: var requiredSnapshotPosition }:
+                    var orderedFields = fields.Values
+                                              .OrderBy(x => x.Index)
+                                              .ToImmutableList();
 
-                    int currentPosition = orderedFields.FindIndex(x => x.Field.Key == key);
+                    int currentPositionInHistory = orderedFields.FindIndex(x => x.Field.Key == key);
 
-                    if (currentPosition == -1 || currentPosition == position)
+                    if (currentPositionInHistory == -1)
                     {
-                        throw new ArgumentException();
+                        throw new ArgumentException("Key not found");
                     }
 
-                    var fieldToMove = orderedFields[currentPosition];
+                    int requiredPositionInHistory = SnapshotToHistoryPosition(orderedFields, requiredSnapshotPosition);
 
-                    fields = orderedFields.RemoveAt(currentPosition)
-                                          .Insert(position, fieldToMove)
-                                          .Select((x, j) =>
+                    FieldState fieldToMove = orderedFields[currentPositionInHistory];
+
+                    fields = orderedFields.RemoveAt(currentPositionInHistory)
+                                          .Insert(requiredPositionInHistory, fieldToMove)
+                                          .Select((x, j) => x with
                                           {
-                                              x.Index = j;
-                                              return x;
+                                              Index = j,
                                           })
                                           .ToDictionary(x => x.Field.Key);
                     break;
@@ -137,15 +151,22 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         }
 
         return lastVersion == version
-            ? OrderFieldsSnapshotByIndex().Select(x => x.Field)
+            ? fields.Values
+                    .Where(x => !x.Removed)
+                    .OrderBy(x => x.Index)
+                    .Select(x => x.Field)
             : throw new ArgumentException();
 
-        IEnumerable<(int Index, FieldDescription Field, bool Removed)> OrderFieldsSnapshotByIndex()
-        {
-            return fields.Values
-                         .Where(x => !x.Removed)
-                         .OrderBy(x => x.Index);
-        }
+        //static int HistoryToSnapshotPosition(IEnumerable<FieldState> fields, int position) => fields
+        //    .Take(position)
+        //    .Count(x => !x.Removed);
+
+        static int SnapshotToHistoryPosition(IEnumerable<FieldState> fields, int position) => fields
+            .Select((x, i) => (CurrentPosition: i, x.Removed))
+            .Where(x => !x.Removed)
+            .Skip(position)
+            .First()
+            .CurrentPosition;
     }
 
     private StructureSchema SelfWith(in Change change) => new(Id, Changes.Add(change));
@@ -154,4 +175,11 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         => MathUtils.Intersects(position, min: 0, max: Latest.TotalFields - 1)
             ? Latest.TryGetField(key, out int index, out _) && index != position
             : throw new ArgumentException();
+
+    private struct FieldState
+    {
+        public int Index;
+        public FieldDescription Field;
+        public bool Removed;
+    }
 }
