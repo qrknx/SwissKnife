@@ -170,6 +170,13 @@
 
 	private async Task OnFieldAddingAsync(FieldDescription field)
 	{
+		field = SelectedTemplate.Schema.Latest.Has(field.Key)
+			? field with
+			{
+				Key = field.Key.MakeUnique(SelectedTemplate.Schema.Latest.UnorderedFields.Select(f => f.Key)),
+			}
+			: field;
+
 		SelectedTemplate = SelectedTemplate with
 		{
 			Schema = SelectedTemplate.Schema

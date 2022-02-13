@@ -50,50 +50,7 @@
 
 	public Modal Modal => _addFieldDialog;
 
-	private FieldKey FieldKey
-	{
-		get
-		{
-			List<List<char>> chunks = new()
-			{
-				new(),
-			};
-
-			foreach (char c in _label)
-			{
-				if (c == '_' || char.IsLetterOrDigit(c))
-				{
-					chunks[^1].Add(char.ToLower(c));
-				}
-				else if (chunks[^1].Any())
-				{
-					chunks.Add(new());
-				}
-			}
-
-			if (!chunks[0].Any())
-			{
-				throw new Exception();
-			}
-
-			if (!chunks[^1].Any())
-			{
-				chunks.RemoveAt(chunks.Count - 1);
-			}
-
-			StringBuilder stringBuilder = new(!char.IsDigit(chunks[0][0]) ? "" : "_",
-			                                  capacity: chunks.Sum(c => c.Count) + chunks.Count);
-
-			stringBuilder.AppendJoin("", chunks[0]);
-
-			foreach (List<char> chunk in chunks.Skip(1))
-			{
-				stringBuilder.Append('_').AppendJoin("", chunk);
-			}
-
-			return new FieldKey(stringBuilder.ToString());
-		}
-	}
+	private FieldKey FieldKey => FieldKey.For(_label);
 
 	[Parameter]
 	public EventCallback<FieldDescription> FieldAdding { get; set; }
