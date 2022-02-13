@@ -30,7 +30,12 @@
 		Add field
 	</Button>
 
-	<Button Clicked="SaveChangesAsync" Color="Color.Success" Disabled="@(!_hasChanges)">Save changes</Button>
+	<Button Clicked="SaveChangesAsync"
+	        Color="Color.Success"
+	        Disabled="@(!_hasChanges)"
+	        title="@ChangeString">
+		Save changes
+	</Button>
 
 	<ListGroup>
 		@foreach (FieldDescription field in SelectedTemplate.Schema.Latest.Fields)
@@ -81,6 +86,14 @@
 		get => _templates!.First(t => t.Id == IncoherentId.Parse(_selectedTemplateId!));
 		set => _templates![_templates.FindIndex(t => t.Id == value.Id)] = value;
 	}
+
+	private string ChangeString => _hasChanges
+		? string.Join(Environment.NewLine,
+		              SelectedTemplate.Schema
+		                              .Changes
+		                              .SkipWhile(c => c.Version < SelectedTemplate.Schema.Latest.Version)
+		                              .Select(c => c.ToString()))
+		: "";
 
 	protected override async Task OnInitializedAsync()
 	{

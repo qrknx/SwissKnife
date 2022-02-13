@@ -1,4 +1,6 @@
-﻿namespace Classeur.Core.CustomizableStructure;
+﻿using System.Text;
+
+namespace Classeur.Core.CustomizableStructure;
 
 public partial class StructureSchema
 {
@@ -40,5 +42,31 @@ public partial class StructureSchema
             => new(version, key: key, position: position);
 
         public bool Has(FieldKey key) => (_field?.Key ?? _key!.Value) == key;
+
+        private bool PrintMembers(StringBuilder builder)
+        {
+            if (IsAdded)
+            {
+                builder.Append($"{nameof(FieldAdded)} = {Field}");
+            }
+            else if (IsRemoved)
+            {
+                builder.Append($"{nameof(FieldRemoved)} = {Key}");
+            }
+            else if (IsMoved)
+            {
+                builder.Append($"{nameof(FieldMoved)} = {Key}, {nameof(Position)} = {Position}");
+            }
+            else if (IsNop)
+            {
+                return false;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
+            return true;
+        }
     }
 }
