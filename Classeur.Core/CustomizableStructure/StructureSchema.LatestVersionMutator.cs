@@ -19,10 +19,9 @@ public partial class StructureSchema
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
         public LatestVersionMutator AddField(FieldDescription field, bool preserveVersion) => new(
-            Schema.AddChange(FieldAdded(field,
-                                        preserveVersion
-                                            ? Latest.Version
-                                            : Latest.NextVersion)));
+            preserveVersion
+                ? UpdateInLatestVersion(FieldAdded(field, Latest.Version))
+                : Schema.AddChange(FieldAdded(field, Latest.NextVersion)));
 
         /// <remarks>
         /// Latest version can decrease. That's why RemoveField does not return LatestVersionMutator
