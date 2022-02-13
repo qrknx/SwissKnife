@@ -90,11 +90,15 @@
 
 	private async Task AddTemplateAsync()
 	{
-		IncoherentId id = IncoherentId.Generate();
-		await _repository.InsertAsync(new Template(id.ToString(),  new StructureSchema(id)), CancellationToken.None);
-		_templates = await _repository.GetAllAsync(CancellationToken.None);
-		_selectedTemplateId = id.ToString();
-		_hasChanges = false;
+		if (await _js.PromptAsync("Enter template name:", CancellationToken.None) is {Length: > 0} name)
+		{
+			IncoherentId id = IncoherentId.Generate();
+
+			await _repository.InsertAsync(new Template(name,  new StructureSchema(id)), CancellationToken.None);
+			_templates = await _repository.GetAllAsync(CancellationToken.None);
+			_selectedTemplateId = id.ToString();
+			_hasChanges = false;
+		}
 	}
 
 	private async Task SaveChangesAsync()
