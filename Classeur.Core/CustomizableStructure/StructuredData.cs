@@ -41,7 +41,6 @@ public readonly struct StructuredData
 
         var builder = ImmutableDictionary<FieldKey, object>.Empty.ToBuilder();
 
-        // Fields from old versions are not preserved by design
         foreach (FieldDescription field in latestVersion.UnorderedFields)
         {
             FieldKey key = field.Key;
@@ -50,6 +49,12 @@ public readonly struct StructuredData
                 ? value
                 // Types shouldn't change
                 : _data[key];
+        }
+
+        // Preserve currently orphaned data
+        foreach (FieldDescription field in Version.UnorderedFields.Except(latestVersion.UnorderedFields))
+        {
+            builder[field.Key] = _data[field.Key];
         }
 
         return new StructuredData(builder.ToImmutable(), Schema, latestVersion);

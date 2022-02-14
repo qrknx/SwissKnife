@@ -2,7 +2,7 @@
 
 public interface ICustomizableDocument
 {
-    public T GetValue<T>(FieldKey key, StructureSchema schema);
+    public object Get(FieldKey key, StructureSchema schema);
 
-    public IEnumerable<FieldKey> GetKeys(StructureSchema schema);
+    public ICustomizableDocument Set(FieldKey key, object value, StructureSchema schema);
 }
