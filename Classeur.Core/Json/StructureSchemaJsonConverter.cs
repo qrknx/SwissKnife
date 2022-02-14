@@ -9,6 +9,7 @@ using static StructureSchema.Change;
 
 public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
 {
+    private const string ChangesFieldName = "Changes";
     private const string ChangeTypeFieldName = "ChangeType";
     private const string FieldTypeIdFieldName = "TypeId";
     private const string FieldTypeFieldName = "Type";
@@ -28,7 +29,7 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
 
         IncoherentId id = reader.DeserializeProperty<IncoherentId>(nameof(StructureSchema.Id), options);
 
-        reader.MoveIfEquals(nameof(StructureSchema.Changes));
+        reader.MoveIfEquals(ChangesFieldName);
         reader.MoveIfEquals(JsonTokenType.StartArray);
 
         List<StructureSchema.Change> changes = new();
@@ -100,10 +101,10 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
         writer.WritePropertyName(nameof(StructureSchema.Id));
         JsonSerializer.Serialize(writer, value.Id, options);
 
-        writer.WritePropertyName(nameof(StructureSchema.Changes));
+        writer.WritePropertyName(ChangesFieldName);
         writer.WriteStartArray();
 
-        foreach (StructureSchema.Change change in value.Changes.Where(c => !c.IsNop))
+        foreach (StructureSchema.Change change in value.InternalChangesForSerialization)
         {
             writer.WriteStartObject();
             

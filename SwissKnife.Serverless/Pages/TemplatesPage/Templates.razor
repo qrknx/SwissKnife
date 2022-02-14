@@ -92,8 +92,7 @@
 	private string ChangeString => _hasChanges
 		? string.Join(Environment.NewLine,
 		              SelectedTemplate.Schema
-		                              .Changes
-		                              .SkipWhile(c => c.Version < SelectedTemplate.Schema.Latest.Version)
+		                              .LatestChanges
 		                              .Select(c => c.ToString()))
 		: "";
 

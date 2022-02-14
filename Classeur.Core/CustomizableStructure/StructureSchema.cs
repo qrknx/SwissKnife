@@ -4,9 +4,14 @@ namespace Classeur.Core.CustomizableStructure;
 
 public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatable<StructureSchema>
 {
+    private readonly ImmutableList<Change> _changes;
+
     public readonly IncoherentId Id;
-    public readonly ImmutableList<Change> Changes;
     public readonly StructureSchemaVersion Latest;
+
+    public IEnumerable<Change> LatestChanges => _changes.SkipWhile(c => c.Version < Latest.Version);
+
+    internal ImmutableList<Change> InternalChangesForSerialization => _changes;
 
     IncoherentId IEntity<IncoherentId>.Id => Id;
 
@@ -24,14 +29,14 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
     private StructureSchema(IncoherentId id, ImmutableList<Change> changes)
     {
         Id = id;
-        Changes = changes;
+        _changes = changes;
         Latest = changes.LastOrDefault() is { Version: var version }
             // Validates changes
             ? GetVersion(version)
             : StructureSchemaVersion.Initial;
     }
 
-    public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version, Changes));
+    public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version, _changes));
 
     /// <remarks>
     /// This method contains some preliminary checks before the main validation which takes place in
@@ -60,7 +65,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         }
 
         return ReferenceEquals(this, other)
-               || Id == other.Id && Changes.SequenceEqual(other.Changes);
+               || Id == other.Id && _changes.SequenceEqual(other._changes);
     }
 
     public override bool Equals(object? obj)
@@ -74,7 +79,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
                || obj.GetType() == GetType() && Equals((StructureSchema)obj);
     }
 
-    public override int GetHashCode() => HashCode.Combine(Id, Changes.Count);
+    public override int GetHashCode() => HashCode.Combine(Id, _changes.Count);
 
     private static IEnumerable<FieldDescription> GetFieldsForVersion(int version, IEnumerable<Change> orderedChanges)
     {
@@ -169,7 +174,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
             .CurrentPosition;
     }
 
-    private StructureSchema SelfWith(in Change change) => new(Id, Changes.Add(change));
+    private StructureSchema SelfWith(in Change change) => new(Id, _changes.Add(change));
 
     private bool MoveMutates(FieldKey key, int position)
         => MathUtils.Intersects(position, min: 0, max: Latest.TotalFields - 1)

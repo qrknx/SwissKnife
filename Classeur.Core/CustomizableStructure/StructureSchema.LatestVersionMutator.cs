@@ -14,7 +14,7 @@ public partial class StructureSchema
 
         private StructureSchemaVersion Latest => Schema.Latest;
 
-        private ImmutableList<Change> Changes => Schema.Changes;
+        private ImmutableList<Change> Changes => Schema._changes;
 
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
