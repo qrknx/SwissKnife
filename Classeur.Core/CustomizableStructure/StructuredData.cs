@@ -12,7 +12,7 @@ public readonly struct StructuredData
     private StructuredData(ImmutableDictionary<FieldKey, object> data,
                            StructureSchemaVersion version) : this(data,
                                                                   schemaId: version.SchemaId,
-                                                                  versionIndex: version.Version) {}
+                                                                  versionIndex: version.VersionIndex) {}
 
     private StructuredData(ImmutableDictionary<FieldKey, object> data,
                            IncoherentId schemaId,
@@ -40,7 +40,7 @@ public readonly struct StructuredData
         VerifySchemaId(nextVersion);
 
         // Migration is possible
-        if (nextVersion.Version < VersionIndex)
+        if (nextVersion.VersionIndex < VersionIndex)
         {
             throw new ArgumentException();
         }

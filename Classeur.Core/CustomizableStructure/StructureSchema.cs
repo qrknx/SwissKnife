@@ -9,7 +9,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
     public readonly IncoherentId Id;
     public readonly StructureSchemaVersion Latest;
 
-    public IEnumerable<Change> LatestChanges => _changes.SkipWhile(c => c.Version < Latest.Version);
+    public IEnumerable<Change> LatestChanges => _changes.SkipWhile(c => c.Version < Latest.VersionIndex);
 
     internal ImmutableList<Change> InternalChangesForSerialization => _changes;
 
@@ -46,7 +46,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
     /// </remarks>
     public StructureSchema AddChange(in Change change) => change switch
     {
-        { Version: var v } when v != Latest.Version && v != Latest.NextVersion => throw new ArgumentException(),
+        { Version: var v } when v != Latest.VersionIndex && v != Latest.NextVersion => throw new ArgumentException(),
 
         { IsAdded: true } => SelfWith(change),
 
@@ -87,7 +87,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
     {
         Dictionary<FieldKey, FieldState> fields = new();
 
-        int lastVersion = StructureSchemaVersion.InitialVersion;
+        int lastVersion = StructureSchemaVersion.InitialVersionIndex;
 
         foreach ((int i, Change change) in orderedChanges.Where(c => !c.IsNop)
                                                          .TakeWhile(c => c.Version <= version)

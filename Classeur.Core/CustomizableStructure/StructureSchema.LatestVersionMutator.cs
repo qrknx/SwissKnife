@@ -19,15 +19,15 @@ public partial class StructureSchema
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
         public StructureSchema AddField(FieldDescription field, bool preserveVersion) => preserveVersion
-            ? UpdateInLatestVersion(FieldAdded(field, Latest.Version))
+            ? UpdateInLatestVersion(FieldAdded(field, Latest.VersionIndex))
             : Schema.AddChange(FieldAdded(field, Latest.NextVersion));
 
         public StructureSchema RemoveField(FieldKey key, bool preserveVersion) => preserveVersion
-            ? UpdateInLatestVersion(FieldRemoved(key, Latest.Version))
+            ? UpdateInLatestVersion(FieldRemoved(key, Latest.VersionIndex))
             : Schema.AddChange(FieldRemoved(key, Latest.NextVersion));
 
         public StructureSchema MoveField(FieldKey key, int position, bool preserveVersion) => preserveVersion
-            ? UpdateInLatestVersion(FieldMoved(key, position, Latest.Version))
+            ? UpdateInLatestVersion(FieldMoved(key, position, Latest.VersionIndex))
             : Schema.AddChange(FieldMoved(key, position, Latest.NextVersion));
 
         /// <remarks>
@@ -35,7 +35,7 @@ public partial class StructureSchema
         /// </remarks>
         private StructureSchema UpdateInLatestVersion(in Change change)
         {
-            int latestVersion = Latest.Version;
+            int latestVersion = Latest.VersionIndex;
 
             List<FieldDescription> allNewestFields
                 = GetFieldsForVersion(latestVersion, Changes.Append(change)).ToList();
@@ -45,7 +45,7 @@ public partial class StructureSchema
             List<FieldDescription> previousFields = GetFieldsForVersion(
                     totalPreviousChanges > 0
                         ? Changes[totalPreviousChanges - 1].Version
-                        : StructureSchemaVersion.InitialVersion,
+                        : StructureSchemaVersion.InitialVersionIndex,
                     Changes.Take(totalPreviousChanges))
                 .ToList();
 

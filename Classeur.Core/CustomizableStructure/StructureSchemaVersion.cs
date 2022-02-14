@@ -4,16 +4,16 @@ namespace Classeur.Core.CustomizableStructure;
 
 public class StructureSchemaVersion
 {
-    public const int InitialVersion = 0;
+    public const int InitialVersionIndex = 0;
 
     public static readonly IgnoringVersionEqualityComparer IgnoringVersionComparer = new();
 
     private readonly ImmutableDictionary<FieldKey, (int Index, FieldDescription Field)> _fieldsByKey;
 
-    public readonly int Version;
+    public readonly int VersionIndex;
     public readonly IncoherentId SchemaId;
 
-    public int NextVersion => Version + 1;
+    public int NextVersion => VersionIndex + 1;
 
     public IEnumerable<FieldDescription> Fields => _fieldsByKey.Values.OrderBy(x => x.Index).Select(x => x.Field);
 
@@ -22,19 +22,21 @@ public class StructureSchemaVersion
     public int TotalFields => _fieldsByKey.Count;
 
     public StructureSchemaVersion(IncoherentId schemaId)
-        : this(version: InitialVersion,
+        : this(versionIndex: InitialVersionIndex,
                schemaId,
                ImmutableDictionary<FieldKey, (int Index, FieldDescription Field)>.Empty) {}
 
-    public StructureSchemaVersion(int version, IncoherentId schemaId, IEnumerable<FieldDescription> fields)
-        : this(version, schemaId, fields.Select((f, i) => (Index: i, Field: f))
-                                        .ToImmutableDictionary(x => x.Field.Key, x => (x.Index, x.Field))) {}
+    public StructureSchemaVersion(int versionIndex, IncoherentId schemaId, IEnumerable<FieldDescription> fields)
+        : this(versionIndex,
+               schemaId,
+               fields.Select((f, i) => (Index: i, Field: f))
+                     .ToImmutableDictionary(x => x.Field.Key, x => (x.Index, x.Field))) {}
 
-    private StructureSchemaVersion(int version,
+    private StructureSchemaVersion(int versionIndex,
                                    IncoherentId schemaId,
                                    ImmutableDictionary<FieldKey, (int Index, FieldDescription Field)> fields)
     {
-        Version = version;
+        VersionIndex = versionIndex;
         SchemaId = schemaId;
         _fieldsByKey = fields;
     }
