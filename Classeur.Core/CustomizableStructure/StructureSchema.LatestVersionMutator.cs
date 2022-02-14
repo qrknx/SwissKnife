@@ -37,19 +37,14 @@ public partial class StructureSchema
         {
             int latest = Latest.VersionIndex;
 
-            List<FieldDescription> allNewestFields
-                = GetFieldSnapshotForVersion(latest, Changes.Append(change)).ToList();
-
             int totalPreviousChanges = Changes.TakeWhile(c => c.Version < latest).Count();
 
             int previous = totalPreviousChanges > 0
                 ? Changes[totalPreviousChanges - 1].Version
                 : StructureSchemaVersion.InitialVersionIndex;
 
-            Dictionary<FieldKey, FieldState> previousFields = GetFieldsForVersion(previous, Changes);
-
-            CalculateDiff(from: previousFields,
-                          to: allNewestFields,
+            CalculateDiff(orderedChanges: Changes.Add(change),
+                          sourceVersion: previous,
                           targetVersion: latest,
                           removed: out List<FieldDescription> removed,
                           restoredAndOrEdited: out List<FieldDescription> restoredAndOrEdited,

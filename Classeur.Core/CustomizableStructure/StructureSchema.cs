@@ -184,17 +184,16 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
             .CurrentPosition;
     }
 
-    private static void CalculateDiff(Dictionary<FieldKey, FieldState> from,
-                                      List<FieldDescription> to,
+    private static void CalculateDiff(ImmutableList<Change> orderedChanges,
+                                      int sourceVersion,
                                       int targetVersion,
                                       out List<FieldDescription> removed,
                                       out List<FieldDescription> restoredAndOrEdited,
                                       out List<FieldDescription> added,
                                       out List<Change> moves)
     {
-        // Rename parameters for convenience
-        Dictionary<FieldKey, FieldState> oldFields = from;
-        List<FieldDescription> newFields = to;
+        Dictionary<FieldKey, FieldState> oldFields = GetFieldsForVersion(sourceVersion, orderedChanges);
+        List<FieldDescription> newFields = GetFieldSnapshotForVersion(targetVersion, orderedChanges).ToList();
 
         removed = oldFields.Values
                            .Where(f => !f.Removed)
