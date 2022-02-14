@@ -18,21 +18,14 @@ public partial class StructureSchema
 
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
-        public LatestVersionMutator AddField(FieldDescription field, bool preserveVersion) => new(
-            preserveVersion
-                ? UpdateInLatestVersion(FieldAdded(field, Latest.Version))
-                : Schema.AddChange(FieldAdded(field, Latest.NextVersion)));
+        public StructureSchema AddField(FieldDescription field, bool preserveVersion) => preserveVersion
+            ? UpdateInLatestVersion(FieldAdded(field, Latest.Version))
+            : Schema.AddChange(FieldAdded(field, Latest.NextVersion));
 
-        /// <remarks>
-        /// Latest version can decrease. That's why RemoveField does not return LatestVersionMutator
-        /// </remarks>
         public StructureSchema RemoveField(FieldKey key, bool preserveVersion) => preserveVersion
             ? UpdateInLatestVersion(FieldRemoved(key, Latest.Version))
             : Schema.AddChange(FieldRemoved(key, Latest.NextVersion));
 
-        /// <remarks>
-        /// Latest version can decrease. That's why MoveField does not return LatestVersionMutator
-        /// </remarks>
         public StructureSchema MoveField(FieldKey key, int position, bool preserveVersion) => preserveVersion
             ? UpdateInLatestVersion(FieldMoved(key, position, Latest.Version))
             : Schema.AddChange(FieldMoved(key, position, Latest.NextVersion));

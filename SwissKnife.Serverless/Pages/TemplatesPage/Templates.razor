@@ -183,8 +183,7 @@
 		{
 			Schema = SelectedTemplate.Schema
 			                         .ToLatestVersionMutator()
-			                         .AddField(field, preserveVersion: await HasPendingChangesAsync())
-			                         .Schema,
+			                         .AddField(field, preserveVersion: await HasPendingChangesAsync()),
 		};
 		_addFieldDialog!.ResetLabel();
 		await UpdateHasChangesAsync();
