@@ -1,0 +1,31 @@
+﻿@using System.Collections.Immutable
+@using Classeur.Core
+@using Classeur.Core.CustomizableStructure
+@using SwissKnife.Serverless.Pages.TemplatesPage.Types
+
+@typeparam TCustomizableDocument where TCustomizableDocument : ICustomizableDocument<TCustomizableDocument>
+
+@inject ImmutableList<KnownFieldTypeDescription> _fieldTypeDescriptions
+
+@foreach (FieldDescription field in Schema.Latest.Fields)
+{
+}
+
+@code {
+
+    private readonly string _prefix = IncoherentId.Generate().ToString();
+
+    [Parameter]
+    public TCustomizableDocument Document { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<DocumentChangingArgs> DocumentChanging { get; set; }
+
+    [Parameter]
+    public StructureSchema Schema { get; set; } = null!;
+
+    private string CreateDomIdFor(IncoherentId id) => $"{_prefix}{id}";
+
+    public readonly record struct DocumentChangingArgs(TCustomizableDocument Updated, bool HasChanges);
+
+}

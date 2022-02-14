@@ -1,0 +1,35 @@
+﻿@page "/notes/{NoteId:long}"
+
+@using Classeur.Core
+@using Classeur.Core.CustomizableStructure
+
+@inject IJSRuntime _js;
+@inject NavigationManager _navigator;
+@inject IRepository<Template, string> _templatesRepository;
+@inject IRepositoryFactory<Note, string> _notesRepositoryFactory;
+
+<PageTitle>@Title</PageTitle>
+
+<h1>@Title</h1>
+
+<StructuredDataForm TCustomizableDocument="Note" Document="_note" Schema="_schema"  />
+
+@code {
+
+    private Note _note = null!;
+    private StructureSchema _schema = null!;
+
+    private string Title => $"Note {NoteId}";
+
+    [Parameter]
+    public string NoteId { get; set; } = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        List<Template> templates = await _templatesRepository.GetAllAsync(CancellationToken.None);
+        IRepository<Note, string> repository = _notesRepositoryFactory.GetRepository(templates.Select(t => t.Schema));
+        _note = await repository.GetAsync(NoteId, CancellationToken.None);
+        _schema = templates.First(t => t.Schema.Id == _note.Data.SchemaId).Schema;
+    }
+
+}

@@ -40,11 +40,11 @@ builder.Services
                FieldKeyJsonConverter.Instance,
            },
        })
-       .AddSingleton(_ => new List<KnownFieldTypeDescription>
+       .AddSingleton(_ => ImmutableList<KnownFieldTypeDescription>.Empty.AddRange(new KnownFieldTypeDescription[]
        {
            new("String", typeof(StringUIFieldType)),
            new("Int64", typeof(Int64UIFieldType)),
-       })
+       }))
        // Important: see remarks for IRepository
        .AddSingleton<IRepository<Template, string>>(services =>
        {
@@ -54,9 +54,10 @@ builder.Services
        })
        .AddSingleton<IRepositoryFactory<Note, string>>(services =>
        {
-           return new LocalStorageRepositoryFactory<Note, string>(services.GetRequiredService<IJSRuntime>(),
-                                                                  collectionId: "notes",
-                                                                  services.GetRequiredService<JsonSerializerOptions>());
+           return new LocalStorageRepositoryFactory<Note, string>(
+               services.GetRequiredService<IJSRuntime>(),
+               collectionId: "notes",
+               services.GetRequiredService<JsonSerializerOptions>());
        });
 
 await builder.Build().RunAsync();

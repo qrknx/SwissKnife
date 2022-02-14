@@ -7,5 +7,7 @@ namespace Classeur.Core;
 /// </remarks>
 public interface IRepositoryFactory<T, TKey>
 {
-    public IRepository<T, TKey> GetRepository(StructureSchema schema);
+    IRepository<T, TKey> GetRepository(StructureSchema schema);
+
+    IRepository<T, TKey> GetRepository(IEnumerable<StructureSchema> schemas);
 }

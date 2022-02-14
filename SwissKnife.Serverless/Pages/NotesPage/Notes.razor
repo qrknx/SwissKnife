@@ -1,0 +1,84 @@
+﻿@page "/notes"
+
+@using Blazorise
+@using Classeur.Core
+@using Classeur.Core.CustomizableStructure
+
+@inject NavigationManager _navigator;
+@inject IRepository<Template, string> _templatesRepository;
+@inject IRepositoryFactory<Note, string> _notesRepositoryFactory;
+
+<PageTitle>@Title</PageTitle>
+
+<h1>@Title</h1>
+
+<Select TValue="string"
+        SelectedValue="_selectedTemplateId"
+        SelectedValueChanged="OnSelectedValueChangedAsync"
+        role="list">
+    @foreach (Template template in _templates)
+    {
+        <SelectItem Value="template.Id.ToString()">
+            @template.Name (@($"v{template.Schema.Latest.VersionIndex}"))
+        </SelectItem>
+    }
+</Select>
+
+@if (SelectedTemplate != null)
+{
+    <Button Color="Color.Primary" Clicked="OnNoteAddingAsync">Add note</Button>
+
+    <ListGroup>
+        @foreach (Note note in _notes)
+        {
+            <ListGroupItem>
+                <a href="@NoteUrl(note)">@note.Id</a>
+            </ListGroupItem>
+        }
+    </ListGroup>
+}
+
+@code {
+
+	private const string Title = "Notes";
+
+    private string _selectedTemplateId = "";
+    private List<Template> _templates = new();
+    private List<Note> _notes = new();
+
+    private Template? SelectedTemplate => _templates.FirstOrDefault(t => t.Id.ToString() == _selectedTemplateId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _templates = await _templatesRepository.GetAllAsync(CancellationToken.None);
+        _selectedTemplateId = _templates.FirstOrDefault()?.Id.ToString() ?? "";
+        await OnSelectedValueChangedAsync();
+    }
+
+    private async Task OnSelectedValueChangedAsync()
+    {
+        if (SelectedTemplate is {} template)
+        {
+            IRepository<Note, string> repository = _notesRepositoryFactory.GetRepository(template.Schema);
+
+            _notes = await repository.GetAllAsync(CancellationToken.None);
+        }  
+    }
+
+    private async Task OnNoteAddingAsync()
+    {
+        StructureSchema schema = SelectedTemplate!.Schema;
+
+        IRepository<Note, string> repository = _notesRepositoryFactory.GetRepository(schema);
+
+        StructuredData structuredData = StructuredData.CreateDefault(SelectedTemplate.Schema.Latest);
+
+        Note note = await repository.InsertAsync(new Note(IncoherentId.Generate(), structuredData),
+                                                 CancellationToken.None);
+
+        _navigator.NavigateTo(NoteUrl(note));
+    }
+
+    private static string NoteUrl(Note note) => $"notes/{note.Id}";
+
+}

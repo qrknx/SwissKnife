@@ -1,11 +1,12 @@
 ﻿@using System.Text
+@using System.Collections.Immutable
 @using Blazorise;
-@using Microsoft.AspNetCore.Components
 @using Classeur.Core.CustomizableStructure
 @using DotNetToolbox
+@using Microsoft.AspNetCore.Components
 @using SwissKnife.Serverless.Pages.TemplatesPage.Types
 
-@inject List<KnownFieldTypeDescription> _fieldTypeDescriptions;
+@inject ImmutableList<KnownFieldTypeDescription> _fieldTypeDescriptions;
 
 <Modal @ref="_addFieldDialog">
 	<ModalContent Centered="true">

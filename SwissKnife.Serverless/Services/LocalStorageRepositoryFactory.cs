@@ -21,13 +21,15 @@ public class LocalStorageRepositoryFactory<T, TKey> : IRepositoryFactory<T, TKey
         _defaultOptions = defaultOptions;
     }
 
-    public IRepository<T, TKey> GetRepository(StructureSchema schema)
+    public IRepository<T, TKey> GetRepository(StructureSchema schema) => GetRepository(new[] { schema });
+
+    public IRepository<T, TKey> GetRepository(IEnumerable<StructureSchema> schemas)
     {
         return new LocalStorageRepository<T, TKey>(_js, _collectionId, new JsonSerializerOptions(_defaultOptions)
         {
             Converters =
             {
-                new StructuredDataJsonConverter(new[] { schema }),
+                new StructuredDataJsonConverter(schemas),
             },
         });
     }
