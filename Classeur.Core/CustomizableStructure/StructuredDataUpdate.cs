@@ -10,7 +10,7 @@ public readonly record struct StructuredDataUpdate
     public ImmutableHashSet<FieldKey> Resets { get; init; } = ImmutableHashSet<FieldKey>.Empty;
 
     public bool GetValueIfExists(FieldKey key,
-                                 FieldDescription field,
+                                 in FieldDescription field,
                                  [NotNullWhen(returnValue: true)]out object? value)
     {
         if (Updates.TryGetValue(key, out value))

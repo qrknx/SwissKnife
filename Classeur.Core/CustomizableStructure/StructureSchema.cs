@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using DotNetToolbox;
 
 namespace Classeur.Core.CustomizableStructure;
 
@@ -38,7 +39,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
 
     public StructureSchemaVersion GetVersion(int version) => new(version,
                                                                  schemaId: Id,
-                                                                 GetFieldsForVersion(version, _changes));
+                                                                 GetFieldSnapshotForVersion(version, _changes));
 
     /// <remarks>
     /// This method contains some preliminary checks before the main validation which takes place in
@@ -83,7 +84,16 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
 
     public override int GetHashCode() => HashCode.Combine(Id, _changes.Count);
 
-    private static IEnumerable<FieldDescription> GetFieldsForVersion(int version, IEnumerable<Change> orderedChanges)
+    private static IEnumerable<FieldDescription> GetFieldSnapshotForVersion(int version,
+                                                                            IEnumerable<Change> orderedChanges)
+    {
+        return GetFieldsForVersion(version, orderedChanges).Values
+                                                           .Where(x => !x.Removed)
+                                                           .OrderBy(x => x.Index)
+                                                           .Select(x => x.Field);
+    }
+
+    private static Dictionary<FieldKey, FieldState> GetFieldsForVersion(int version, IEnumerable<Change> orderedChanges)
     {
         Dictionary<FieldKey, FieldState> fields = new();
 
@@ -104,13 +114,14 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
                     });
                     break;
 
-                // Restore case
+                // Restore and/or edit case
                 case { IsAdded: true, Field: { Key: var key } field }
-                    when fields[key] is { Removed: true, Field: var existingField } existing
-                         && existingField.Equals(field):
+                    when fields[key] is { Field.Type: var existingType } existing
+                         && field.Type.CanValueBeAssignedFrom(existingType):
                     fields[key] = existing with
                     {
                         Removed = false,
+                        Field = field,
                     };
                     break;
 
@@ -158,10 +169,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         }
 
         return lastVersion == version
-            ? fields.Values
-                    .Where(x => !x.Removed)
-                    .OrderBy(x => x.Index)
-                    .Select(x => x.Field)
+            ? fields
             : throw new ArgumentException();
 
         //static int HistoryToSnapshotPosition(IEnumerable<FieldState> fields, int position) => fields
@@ -174,6 +182,65 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
             .Skip(position)
             .First()
             .CurrentPosition;
+    }
+
+    private static void CalculateDiff(Dictionary<FieldKey, FieldState> from,
+                                      List<FieldDescription> to,
+                                      int targetVersion,
+                                      out List<FieldDescription> removed,
+                                      out List<FieldDescription> restoredAndOrEdited,
+                                      out List<FieldDescription> added,
+                                      out List<Change> moves)
+    {
+        // Rename parameters for convenience
+        Dictionary<FieldKey, FieldState> oldFields = from;
+        List<FieldDescription> newFields = to;
+
+        removed = oldFields.Values
+                           .Where(f => !f.Removed)
+                           .ExceptBy(newFields.Select(f => f.Key), state => state.Field.Key)
+                           .ToList(state => state.Field);
+
+        restoredAndOrEdited = oldFields.Values
+                                       // Only known fields (either removed or not) remain
+                                       .IntersectBy(newFields.Select(f => f.Key),
+                                                    f => f.Field.Key)
+                                       // Exclude fields which are unchanged AND existing
+                                       .ExceptBy(newFields.Select(f => (f, false)),
+                                                 f => (f.Field, f.Removed))
+                                       .ToList(f => f.Field);
+
+        added = newFields.ExceptBy(oldFields.Keys, f => f.Key).ToList();
+
+        // Contains the same set of fields as `allNewestFields` but possible moves are not applied yet
+        List<FieldDescription> fieldsToMove = oldFields.Values
+                                                       .OrderBy(f => f.Index)
+                                                       .Select(f => f.Field)
+                                                       .Except(removed)
+                                                       .Concat(restoredAndOrEdited)
+                                                       .Concat(added)
+                                                       .ToList();
+
+        moves = new List<Change>(capacity: Math.Max(oldFields.Count, newFields.Count));
+
+        for (int i = 0; i < fieldsToMove.Count; ++i)
+        {
+            FieldKey keyToMatch = newFields[i].Key;
+
+            if (fieldsToMove[i].Key != keyToMatch)
+            {
+                // Looking for a field to move to position `i`
+                (int k, FieldDescription fieldToMove) = fieldsToMove.Skip(i + 1)
+                                                                    .Select((f, j) => (Index: i + 1 + j, Field: f))
+                                                                    .First(x => x.Field.Key == keyToMatch);
+
+                // Move from bottom to top
+                fieldsToMove.RemoveAt(k);
+                fieldsToMove.Insert(i, fieldToMove);
+
+                moves.Add(Change.FieldMoved(fieldToMove.Key, position: i, targetVersion));
+            }
+        }
     }
 
     private StructureSchema SelfWith(in Change change) => new(Id, _changes.Add(change));

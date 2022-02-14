@@ -39,13 +39,7 @@ public readonly struct StructuredData
     {
         VerifySchemaId(nextVersion);
 
-        // Migration is possible
-        if (nextVersion.VersionIndex < VersionIndex)
-        {
-            throw new ArgumentException();
-        }
-
-        // Preserve currently orphaned data
+        // Migration is possible. In such case we preserve currently orphaned data
         ImmutableDictionary<FieldKey, object>.Builder builder = _data.ToBuilder();
 
         foreach (FieldDescription field in nextVersion.UnorderedFields)
@@ -56,9 +50,14 @@ public readonly struct StructuredData
             {
                 builder[key] = value;
             }
-            else if (!_data.ContainsKey(key))
+            // When version is being upgraded and a field is added
+            else if (!_data.TryGetValue(key, out value))
             {
                 builder[key] = field.Type.GetDefaultValue();
+            }
+            else
+            {
+                builder[key] = VerifyForPossibleDowngrade(value, field);
             }
         }
 
@@ -73,7 +72,7 @@ public readonly struct StructuredData
         FieldDescription field = version.GetField(key);
 
         return _data.TryGetValue(key, out object? value)
-            ? (T)value
+            ? (T)VerifyForPossibleDowngrade(value, field)
             : field.Type.GetDefaultValue<T>();
     }
 
@@ -91,5 +90,13 @@ public readonly struct StructuredData
         {
             throw new ArgumentException();
         }
+    }
+
+    /// <summary>
+    /// When a version is being downgraded we need to verify that the field still contains valid value
+    /// </summary>
+    private static object VerifyForPossibleDowngrade(object value, in FieldDescription field)
+    {
+        return field.Type.Parse(value);
     }
 }

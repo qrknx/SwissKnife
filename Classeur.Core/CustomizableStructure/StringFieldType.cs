@@ -18,6 +18,11 @@ public record StringFieldType : AbstractFieldType
     [JsonConstructor]
     public StringFieldType(int maxLength, string @default)
     {
+        if (maxLength < 0)
+        {
+            throw new ArgumentException();
+        }
+
         MaxLength = maxLength;
         Default = ThrowIfNot(IsValid, @default);
     }
@@ -25,6 +30,10 @@ public record StringFieldType : AbstractFieldType
     public override T GetDefaultValue<T>() => (T)(object)Default;
 
     public override object Parse(object value) => ThrowIfBoxedNot<string>(value, IsValid);
+
+    public override bool CanValueBeAssignedFrom(AbstractFieldType other)
+        => other.GetType() == typeof(StringFieldType)
+           && ((StringFieldType)other).MaxLength <= MaxLength;
 
     private bool IsValid(string s) => s.Length <= MaxLength;
 }

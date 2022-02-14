@@ -12,6 +12,8 @@ public abstract record AbstractFieldType
 
     public abstract object Parse(object value);
 
+    public abstract bool CanValueBeAssignedFrom(AbstractFieldType other);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static T ThrowIfNot<T>(Func<T, bool> validator, T value) => validator(value)
         ? value

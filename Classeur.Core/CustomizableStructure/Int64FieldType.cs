@@ -21,6 +21,11 @@ public record Int64FieldType : AbstractFieldType
     [JsonConstructor]
     public Int64FieldType(long min, long max, long @default)
     {
+        if (Min > Max)
+        {
+            throw new ArgumentException();
+        }
+
         Min = min;
         Max = max;
         Default = ThrowIfNot(IsValid, @default);
@@ -29,6 +34,11 @@ public record Int64FieldType : AbstractFieldType
     public override T GetDefaultValue<T>() => (T)(object)Default;
 
     public override object Parse(object value) => ThrowIfBoxedNot<long>(value, IsValid);
+
+    public override bool CanValueBeAssignedFrom(AbstractFieldType other) => other.GetType() == typeof(Int64FieldType)
+                                                                            && other is Int64FieldType converted
+                                                                            && converted.Min >= Min
+                                                                            && converted.Max <= Max;
 
     private bool IsValid(long s) => MathUtils.Intersects(Default, min: Min, max: Max);
 }
