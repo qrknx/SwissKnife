@@ -45,11 +45,18 @@ builder.Services
            new("String", typeof(StringUIFieldType)),
            new("Int64", typeof(Int64UIFieldType)),
        })
+       // Important: see remarks for IRepository
        .AddSingleton<IRepository<Template, string>>(services =>
        {
            return new LocalStorageRepository<Template, string>(services.GetRequiredService<IJSRuntime>(),
                                                                collectionId: "templates",
                                                                services.GetRequiredService<JsonSerializerOptions>());
+       })
+       .AddSingleton<IRepositoryFactory<Note, string>>(services =>
+       {
+           return new LocalStorageRepositoryFactory<Note, string>(services.GetRequiredService<IJSRuntime>(),
+                                                                  collectionId: "notes",
+                                                                  services.GetRequiredService<JsonSerializerOptions>());
        });
 
 await builder.Build().RunAsync();
