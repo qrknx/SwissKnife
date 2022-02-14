@@ -15,6 +15,9 @@ public record Int64FieldType : AbstractFieldType
     [JsonInclude]
     public readonly long Default;
 
+    [JsonIgnore]
+    public override Type UnderlyingType => typeof(long);
+
     [JsonConstructor]
     public Int64FieldType(long min, long max, long @default)
     {

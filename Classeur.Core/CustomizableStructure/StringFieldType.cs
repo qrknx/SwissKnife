@@ -12,6 +12,9 @@ public record StringFieldType : AbstractFieldType
     [JsonInclude]
     public readonly string Default;
 
+    [JsonIgnore]
+    public override Type UnderlyingType => typeof(string);
+
     [JsonConstructor]
     public StringFieldType(int maxLength, string @default)
     {

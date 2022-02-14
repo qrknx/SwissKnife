@@ -55,16 +55,11 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
             reader.Read();
 
-            structuredData = field.Type switch
-            {
-                StringFieldType => structuredData.Set(key,
-                                                      reader.GetString() ?? throw new JsonException(),
-                                                      version),
-
-                Int64FieldType => structuredData.Set(key, reader.GetInt64(), version),
-
-                _ => throw new NotImplementedException(),
-            };
+            structuredData = structuredData.Set(key,
+                                                JsonSerializer.Deserialize(ref reader,
+                                                                           field.Type.UnderlyingType,
+                                                                           options) ?? throw new JsonException(),
+                                                version);
 
             reader.Read();
         }
@@ -86,21 +81,7 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
         foreach (FieldDescription field in version.UnorderedFields)
         {
-            FieldKey key = field.Key;
-
-            switch (field.Type)
-            {
-                case StringFieldType:
-                    writer.WriteString(key.Name, value.Get<string>(key, version));
-                    break;
-
-                case Int64FieldType:
-                    writer.WriteNumber(key.Name, value.Get<long>(key, version));
-                    break;
-
-                default:
-                    throw new NotImplementedException();
-            }
+            JsonSerializer.Serialize(writer, value.Get<object>(field.Key, version), field.Type.UnderlyingType, options);
         }
 
         writer.WriteEndObject();

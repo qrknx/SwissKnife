@@ -4,6 +4,8 @@ namespace Classeur.Core.CustomizableStructure;
 
 public abstract record AbstractFieldType
 {
+    public abstract Type UnderlyingType { get; }
+
     public object GetDefaultValue() => GetDefaultValue<object>();
 
     public abstract T GetDefaultValue<T>();
