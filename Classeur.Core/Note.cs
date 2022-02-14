@@ -8,7 +8,7 @@ public record Note(IncoherentId Id, StructuredData Data) : IEntity<IncoherentId>
 {
     string IEntity<string>.Id => Id.ToString();
 
-    object ICustomizableDocument<Note>.Get(FieldKey key, StructureSchemaVersion version)
+    object IStructuredDataView.Get(FieldKey key, StructureSchemaVersion version)
         => Data.Get<object>(key, version);
 
     Note ICustomizableDocument<Note>.Set(FieldKey key, object value, StructureSchemaVersion version) => this with

@@ -3,7 +3,7 @@ using DotNetToolbox;
 
 namespace Classeur.Core.CustomizableStructure;
 
-public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, IEquatable<StructureSchema>
+public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
 {
     public readonly IncoherentId Id;
     public readonly ImmutableList<Change> Changes;
@@ -56,30 +56,6 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
 
         _ => throw new NotImplementedException(),
     };
-
-    public bool Equals(StructureSchema? other)
-    {
-        if (ReferenceEquals(null, other))
-        {
-            return false;
-        }
-
-        return ReferenceEquals(this, other)
-               || Id == other.Id && Changes.SequenceEqual(other.Changes);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        if (ReferenceEquals(null, obj))
-        {
-            return false;
-        }
-
-        return ReferenceEquals(this, obj)
-               || obj.GetType() == GetType() && Equals((StructureSchema)obj);
-    }
-
-    public override int GetHashCode() => HashCode.Combine(Id, Changes.Count);
 
     private static IEnumerable<FieldDescription> GetFieldSnapshotForVersion(int version,
                                                                             IEnumerable<Change> orderedChanges)
