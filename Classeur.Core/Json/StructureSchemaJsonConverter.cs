@@ -104,7 +104,7 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
         writer.WritePropertyName(ChangesFieldName);
         writer.WriteStartArray();
 
-        foreach (StructureSchema.Change change in value.InternalChangesForSerialization)
+        foreach (StructureSchema.Change change in value.Changes)
         {
             writer.WriteStartObject();
             

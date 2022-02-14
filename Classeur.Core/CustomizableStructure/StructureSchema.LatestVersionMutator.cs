@@ -14,7 +14,7 @@ public partial class StructureSchema
 
         private StructureSchemaVersion Latest => Schema.Latest;
 
-        private ImmutableList<Change> Changes => Schema._changes;
+        private ImmutableList<Change> Changes => Schema.Changes;
 
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
@@ -30,9 +30,6 @@ public partial class StructureSchema
             ? UpdateInLatestVersion(FieldMoved(key, position, Latest.VersionIndex))
             : Schema.AddChange(FieldMoved(key, position, Latest.NextVersion));
 
-        /// <remarks>
-        /// This method shouldn't be public! It accepts only specific changes.
-        /// </remarks>
         private StructureSchema UpdateInLatestVersion(in Change change)
         {
             int latest = Latest.VersionIndex;

@@ -11,7 +11,7 @@ public class StructureSchemaTests
     {
         StructureSchema schema = new(IncoherentId.Generate());
 
-        Assert.Empty(schema.InternalChangesForSerialization);
+        Assert.Empty(schema.Changes);
         Assert.Equal(0, schema.Latest.VersionIndex);
         Assert.Equal(0, schema.Latest.TotalFields);
         Assert.Empty(schema.Latest.Fields);

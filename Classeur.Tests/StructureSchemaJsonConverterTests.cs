@@ -34,7 +34,7 @@ public partial class StructureSchemaJsonConverterTests
         StructureSchema deserializedSchema = JsonSerializer.Deserialize<StructureSchema>(stream, Options)!;
 
         Assert.Equal(expected: Id, deserializedSchema.Id);
-        Assert.Equal(expected: @case.Changes, deserializedSchema.InternalChangesForSerialization);
+        Assert.Equal(expected: @case.Changes, deserializedSchema.Changes);
     }
 
     [Fact(Skip = "External code")]
