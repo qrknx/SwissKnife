@@ -1,8 +1,8 @@
 ﻿namespace Classeur.Core.CustomizableStructure;
 
-public interface ICustomizableDocument
+public interface ICustomizableDocument<T>
 {
-    public object Get(FieldKey key, StructureSchema schema);
+    public object Get(FieldKey key, StructureSchemaVersion version);
 
-    public ICustomizableDocument Set(FieldKey key, object value, StructureSchema schema);
+    public T Set(FieldKey key, object value, StructureSchemaVersion version);
 }

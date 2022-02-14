@@ -45,7 +45,7 @@ public partial class StructureSchema
             List<FieldDescription> previousFields = GetFieldsForVersion(
                     totalPreviousChanges > 0
                         ? Changes[totalPreviousChanges - 1].Version
-                        : StructureSchemaVersion.Initial.Version,
+                        : StructureSchemaVersion.InitialVersion,
                     Changes.Take(totalPreviousChanges))
                 .ToList();
 

@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections.Immutable;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Classeur.Core.CustomizableStructure;
 
@@ -6,30 +7,32 @@ namespace Classeur.Core.Json;
 
 public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 {
-    private const string SchemaIdFieldName = "SchemaId";
     private const string DataFieldName = "Data";
 
-    private readonly StructureSchema _schema;
+    private readonly ImmutableDictionary<IncoherentId, StructureSchema> _schemas;
 
-    public StructuredDataJsonConverter(StructureSchema schema) => _schema = schema;
+    public StructuredDataJsonConverter(IEnumerable<StructureSchema> schemas)
+    {
+        _schemas = schemas.ToImmutableDictionary(s => s.Id);
+    }
 
     public override StructuredData Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         reader.MoveIfEquals(JsonTokenType.StartObject);
-        reader.MoveIfEquals(SchemaIdFieldName);
+        reader.MoveIfEquals(nameof(StructuredData.SchemaId));
 
-        IncoherentId id = new(reader.GetInt64());
-
-        if (_schema.Id != id)
+        if (!_schemas.TryGetValue(new IncoherentId(reader.GetInt64()), out StructureSchema? schema))
         {
             throw new JsonException();
         }
 
         reader.Read();
 
-        reader.MoveIfEquals(nameof(StructuredData.Version));
+        reader.MoveIfEquals(nameof(StructuredData.VersionIndex));
 
-        StructuredData structuredData = StructuredData.CreateDefault(_schema, reader.GetInt32());
+        StructureSchemaVersion version = schema.GetVersion(reader.GetInt32());
+
+        StructuredData structuredData = StructuredData.CreateDefault(version);
 
         reader.Read();
 
@@ -45,7 +48,7 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
             FieldKey key = new(reader.GetString() ?? throw new JsonException());
 
-            if (!structuredData.Version.TryGetField(key, out _, out FieldDescription field))
+            if (!version.TryGetField(key, out _, out FieldDescription field))
             {
                 throw new JsonException();
             }
@@ -54,8 +57,12 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
             structuredData = field.Type switch
             {
-                StringFieldType => structuredData.Set(key, reader.GetString() ?? throw new JsonException()),
-                Int64FieldType => structuredData.Set(key, reader.GetInt64()),
+                StringFieldType => structuredData.Set(key,
+                                                      reader.GetString() ?? throw new JsonException(),
+                                                      version),
+
+                Int64FieldType => structuredData.Set(key, reader.GetInt64(), version),
+
                 _ => throw new NotImplementedException(),
             };
 
@@ -69,24 +76,26 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
     public override void Write(Utf8JsonWriter writer, StructuredData value, JsonSerializerOptions options)
     {
+        StructureSchemaVersion version = _schemas[value.SchemaId].GetVersion(value.VersionIndex);
+
         writer.WriteStartObject();
-        writer.WritePropertyName(SchemaIdFieldName);
-        JsonSerializer.Serialize(writer, value.Schema.Id, options);
-        writer.WriteNumber(nameof(StructuredData.Version), value.Version.Version);
+        writer.WritePropertyName(nameof(StructuredData.SchemaId));
+        JsonSerializer.Serialize(writer, value.SchemaId, options);
+        writer.WriteNumber(nameof(StructuredData.VersionIndex), value.VersionIndex);
         writer.WriteStartObject(DataFieldName);
 
-        foreach (FieldDescription field in value.Version.UnorderedFields)
+        foreach (FieldDescription field in version.UnorderedFields)
         {
             FieldKey key = field.Key;
 
             switch (field.Type)
             {
                 case StringFieldType:
-                    writer.WriteString(key.Name, value.Get<string>(key));
+                    writer.WriteString(key.Name, value.Get<string>(key, version));
                     break;
 
                 case Int64FieldType:
-                    writer.WriteNumber(key.Name, value.Get<long>(key));
+                    writer.WriteNumber(key.Name, value.Get<long>(key, version));
                     break;
 
                 default:

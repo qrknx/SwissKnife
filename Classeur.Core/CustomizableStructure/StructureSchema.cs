@@ -33,10 +33,12 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
         Latest = changes.LastOrDefault() is { Version: var version }
             // Validates changes
             ? GetVersion(version)
-            : StructureSchemaVersion.Initial;
+            : new StructureSchemaVersion(schemaId: Id);
     }
 
-    public StructureSchemaVersion GetVersion(int version) => new(version, GetFieldsForVersion(version, _changes));
+    public StructureSchemaVersion GetVersion(int version) => new(version,
+                                                                 schemaId: Id,
+                                                                 GetFieldsForVersion(version, _changes));
 
     /// <remarks>
     /// This method contains some preliminary checks before the main validation which takes place in
@@ -85,7 +87,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>, I
     {
         Dictionary<FieldKey, FieldState> fields = new();
 
-        int lastVersion = StructureSchemaVersion.Initial.Version;
+        int lastVersion = StructureSchemaVersion.InitialVersion;
 
         foreach ((int i, Change change) in orderedChanges.Where(c => !c.IsNop)
                                                          .TakeWhile(c => c.Version <= version)

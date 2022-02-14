@@ -6,73 +6,90 @@ public readonly struct StructuredData
 {
     private readonly ImmutableDictionary<FieldKey, object> _data;
 
-    public readonly StructureSchema Schema;
-    public readonly StructureSchemaVersion Version;
+    public readonly IncoherentId SchemaId;
+    public readonly int VersionIndex;
 
     private StructuredData(ImmutableDictionary<FieldKey, object> data,
-                           StructureSchema schema,
-                           StructureSchemaVersion version)
+                           StructureSchemaVersion version) : this(data,
+                                                                  schemaId: version.SchemaId,
+                                                                  versionIndex: version.Version) {}
+
+    private StructuredData(ImmutableDictionary<FieldKey, object> data,
+                           IncoherentId schemaId,
+                           int versionIndex)
     {
         _data = data;
-        Schema = schema;
-        Version = version;
+        SchemaId = schemaId;
+        VersionIndex = versionIndex;
     }
 
-    public static StructuredData CreateDefault(StructureSchema schema, int? version)
+    public static StructuredData CreateDefault(StructureSchemaVersion version)
     {
-        StructureSchemaVersion selectedVersion = version is {} v
-            ? schema.GetVersion(v)
-            : schema.Latest;
-
         var builder = ImmutableDictionary<FieldKey, object>.Empty.ToBuilder();
 
-        foreach (FieldDescription field in selectedVersion.UnorderedFields)
+        foreach (FieldDescription field in version.UnorderedFields)
         {
             builder[field.Key] = field.Type.GetDefaultValue();
         }
 
-        return new StructuredData(builder.ToImmutable(), schema, selectedVersion);
+        return new StructuredData(builder.ToImmutable(), version);
     }
 
-    public StructuredData ApplyUpdate(in StructuredDataUpdate update)
+    public StructuredData ApplyUpdate(in StructuredDataUpdate update, StructureSchemaVersion nextVersion)
     {
+        VerifySchemaId(nextVersion);
+
         // Migration is possible
-        StructureSchemaVersion latestVersion = Schema.Latest;
-
-        var builder = ImmutableDictionary<FieldKey, object>.Empty.ToBuilder();
-
-        foreach (FieldDescription field in latestVersion.UnorderedFields)
+        if (nextVersion.Version < VersionIndex)
         {
-            FieldKey key = field.Key;
-
-            builder[key] = update.GetValueIfExists(key, field, out object? value)
-                ? value
-                // Types shouldn't change
-                : _data[key];
+            throw new ArgumentException();
         }
 
         // Preserve currently orphaned data
-        foreach (FieldDescription field in Version.UnorderedFields.Except(latestVersion.UnorderedFields))
+        ImmutableDictionary<FieldKey, object>.Builder builder = _data.ToBuilder();
+
+        foreach (FieldDescription field in nextVersion.UnorderedFields)
         {
-            builder[field.Key] = _data[field.Key];
+            FieldKey key = field.Key;
+
+            if (update.GetValueIfExists(key, field, out object? value))
+            {
+                builder[key] = value;
+            }
+            else if (!_data.ContainsKey(key))
+            {
+                builder[key] = field.Type.GetDefaultValue();
+            }
         }
 
-        return new StructuredData(builder.ToImmutable(), Schema, latestVersion);
+        return new StructuredData(builder.ToImmutable(), nextVersion);
     }
 
-    public T Get<T>(FieldKey key)
+    public T Get<T>(FieldKey key, StructureSchemaVersion version)
     {
+        VerifySchemaId(version);
+
         // Checks the key exists
-        FieldDescription field = Schema.Latest.GetField(key);
+        FieldDescription field = version.GetField(key);
 
         return _data.TryGetValue(key, out object? value)
             ? (T)value
             : field.Type.GetDefaultValue<T>();
     }
 
-    public StructuredData Set(FieldKey key, object value) => ApplyUpdate(new StructuredDataUpdate
+    public StructuredData Set(FieldKey key, object value, StructureSchemaVersion version) => ApplyUpdate(
+        new StructuredDataUpdate
+        {
+            Updates = ImmutableDictionary<FieldKey, object>.Empty
+                                                           .Add(key, value),
+        },
+        version);
+
+    private void VerifySchemaId(StructureSchemaVersion version)
     {
-        Updates = ImmutableDictionary<FieldKey, object>.Empty
-                                                       .Add(key, value),
-    });
+        if (version.SchemaId != SchemaId)
+        {
+            throw new ArgumentException();
+        }
+    }
 }
