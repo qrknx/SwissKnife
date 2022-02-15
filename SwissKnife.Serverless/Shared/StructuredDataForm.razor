@@ -38,8 +38,14 @@
     };
 
     public TCustomizableDocument GetChanged() => _fields
-        .Select(c => (IValueUI)c.Instance!)
-        .Aggregate(Document, (current, ui) => current.Set(ui.Field.Key, ui.GetValue(), Schema.Latest));
+        .Select(c =>
+        {
+            var ui = (IValueUI)c.Instance!;
+
+            return (ui.Field.Key, IsValid: ui.TryGetValue(out object? value), Value: value!);
+        })
+        .Where(x => x.IsValid)
+        .Aggregate(Document, (current, x) => current.Set(x.Key, x.Value, Schema.Latest));
 
     private async Task OnFieldValueChangingAsync() => await Changing.InvokeAsync();
 

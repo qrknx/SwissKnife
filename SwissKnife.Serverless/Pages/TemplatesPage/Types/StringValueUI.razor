@@ -1,36 +1,56 @@
 ﻿@using Blazorise
 @using Classeur.Core.CustomizableStructure
+@using System.Diagnostics.CodeAnalysis
 
 @implements IValueUI
 
 <Label For="@_textEdit?.ElementId">@Field.Label</Label>
-<TextEdit @ref="_textEdit" Text="@((string)Value)" TextChanged="OnTextChangedAsync" />
+<TextEdit @ref="_textEdit" Text="@_text" TextChanged="OnTextChangedAsync" Border="_border" />
 
 @code {
 
     private TextEdit? _textEdit;
-    private string _value = StringFieldType.Defaults.Default;
+    private IFluentBorder _border = Border.Success;
+    private string _text = StringFieldType.Defaults.Default;
 
     [Parameter]
     public FieldDescription Field { get; set; }
 
     [Parameter]
-    public object Value { get; set; } = null!;
+    public object Value { private get; set; } = null!;
 
     [Parameter]
     public EventCallback Changing { get; set; }
 
-    public object GetValue() => _value;
+    public bool TryGetValue([NotNullWhen(returnValue: true)]out object? value)
+    {
+        if (Field.Type.TryParse(_text, out object? parsed))
+        {
+            value = (string)parsed;
+            return true;
+        }
 
-    protected override void OnInitialized() => _value = (string)Value;
+        value = null;
+        return false;
+    }
+
+    protected override void OnInitialized()
+    {
+        _text = (string)Value;
+        UpdateValidation();
+    }
 
     private async Task OnTextChangedAsync(string text)
     {
-        _value = Field.Type.TryParse(text, out object? parsed)
-            ? (string)parsed
-            : StringFieldType.Defaults.Default;
+        _text = text;
+
+        UpdateValidation();
 
         await Changing.InvokeAsync();
     }
+
+    private void UpdateValidation() => _border = Field.Type.TryParse(_text, out _)
+        ? Border.Success
+        : Border.Warning;
 
 }

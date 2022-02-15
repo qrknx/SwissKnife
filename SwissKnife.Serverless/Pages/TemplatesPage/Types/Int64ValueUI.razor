@@ -1,36 +1,57 @@
 ﻿@using Blazorise
 @using Classeur.Core.CustomizableStructure
+@using System.Diagnostics.CodeAnalysis
 
 @implements IValueUI
 
 <Label For="@_textEdit?.ElementId">@Field.Label</Label>
-<TextEdit @ref="_textEdit" Text="@(((long)Value).ToString())" TextChanged="OnTextChangedAsync" />
+<TextEdit @ref="_textEdit" Text="@_text" TextChanged="OnTextChangedAsync" Border="_border" />
 
 @code {
 
     private TextEdit? _textEdit;
-    private long _value = Int64FieldType.Defaults.Default;
+    private IFluentBorder _border = Border.Success;
+    private string _text = Int64FieldType.Defaults.Default.ToString();
 
     [Parameter]
     public FieldDescription Field { get; set; }
 
     [Parameter]
-    public object Value { get; set; } = null!;
+    public object Value { private get; set; } = null!;
 
     [Parameter]
     public EventCallback Changing { get; set; }
 
-    public object GetValue() => _value;
+    public bool TryGetValue([NotNullWhen(returnValue: true)]out object? value)
+    {
+        if (long.TryParse(_text, out long i) && Field.Type.TryParse(i, out object? parsed))
+        {
+            value = (long)parsed;
+            return true;
+        }
 
-    protected override void OnInitialized() => _value = (long)Value;
+        value = null;
+        return false;
+    }
+
+    protected override void OnInitialized()
+    {
+        _text = ((long)Value).ToString();
+        UpdateValidation();
+    }
 
     private async Task OnTextChangedAsync(string text)
     {
-        _value = Field.Type.TryParse(text, out object? parsed)
-            ? (long)parsed
-            : Int64FieldType.Defaults.Default;
+        _text = text;
+
+        UpdateValidation();
 
         await Changing.InvokeAsync();
     }
+
+    private void UpdateValidation() => _border = long.TryParse(_text, out long i)
+                                                 && Field.Type.TryParse(i, out _)
+        ? Border.Success
+        : Border.Warning;
 
 }
