@@ -1,24 +1,32 @@
 ﻿@using Blazorise;
+@using Classeur.Core.CustomizableStructure
 
-@implements IFormFragment<Int64UIFieldType>
+@implements IFieldTypeUI<Int64FieldType>
 
 <Field>
 	<FieldLabel>Default</FieldLabel>
-	<TextEdit @bind-Text="@_field.Default"/>
+	<TextEdit @bind-Text="@_default"/>
 </Field>
 <Field>
 	<FieldLabel>Min</FieldLabel>
-	<TextEdit @bind-Text="@_field.Min"/>
+	<TextEdit @bind-Text="@_min"/>
 </Field>
 <Field>
 	<FieldLabel>Max</FieldLabel>
-	<TextEdit @bind-Text="@_field.Max"/>
+	<TextEdit @bind-Text="@_max"/>
 </Field>
-
 
 @code {
 
-	private Int64UIFieldType _field = new();
+    private string _default = Int64FieldType.Defaults.Default.ToString();
+    private string _min = Int64FieldType.Defaults.Min.ToString();
+    private string _max = Int64FieldType.Defaults.Max.ToString();
 
-	public Int64UIFieldType Data => _field;
+    public FieldDescription GetDescription(FieldKey key, string label) => new(
+        key,
+        label,
+        new Int64FieldType(min: long.Parse(_min),
+                           max: long.Parse(_max),
+                           @default: long.Parse(_default)));
+
 }

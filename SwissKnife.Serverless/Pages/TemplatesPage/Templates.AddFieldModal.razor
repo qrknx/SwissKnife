@@ -21,14 +21,15 @@
 			</Field>
 			<Field>
 				<FieldLabel>Type</FieldLabel>
-				<Select TValue="string" @bind-SelectedValue="_selectedFieldId">
-					@foreach (KnownFieldTypeDescription known in _fieldTypeDescriptions)
+				<Select @bind-SelectedValue="_selectedIndex">
+					@foreach (var (i, fieldTypeDescription) in _fieldTypeDescriptions.Select((f, i) => (i, f)))
 					{
-						<SelectItem Value="known.Id">@known.Name</SelectItem>
+						<SelectItem Value="i">@fieldTypeDescription.Name</SelectItem>
 					}
 				</Select>
 			</Field>
-			<DynamicComponent @ref="_fieldCreateForm" Type="SelectedField.FormFragmentForCreate" />
+            <DynamicComponent @ref="_fieldCreateForm"
+                              Type="_fieldTypeDescriptions[_selectedIndex].EditFormType" />
 		</ModalBody>
 		<ModalFooter>
 			<Button Color="Color.Primary" Clicked="AddFieldAsync">Add</Button>
@@ -43,11 +44,7 @@
 
 	private string _label = "";
 
-	private IUIFieldType[] _newFields = Array.Empty<IUIFieldType>();
-
-	private string _selectedFieldId = "";
-
-	private IUIFieldType SelectedField => _newFields[_fieldTypeDescriptions.FindIndex(t => t.Id == _selectedFieldId)];
+	private int _selectedIndex;
 
 	public Modal Modal => _addFieldDialog;
 
@@ -56,17 +53,11 @@
 
 	public void ResetLabel() => _label = "";
 
-	protected override void OnInitialized()
-	{
-		_newFields = _fieldTypeDescriptions.ToArray(t => t.Create());
-		_selectedFieldId = _fieldTypeDescriptions.First().Id;
-	}
-
 	private async Task AddFieldAsync()
 	{
-		var formFragment = (IFormFragment<IUIFieldType>)_fieldCreateForm.Instance!;
+		var ui = (IFieldTypeUI)_fieldCreateForm.Instance!;
 
-		await FieldAdding.InvokeAsync(formFragment.Data.GetDescription(FieldKey.For(_label), _label));
+		await FieldAdding.InvokeAsync(ui.GetDescription(FieldKey.For(_label), _label));
 	}
 
 }

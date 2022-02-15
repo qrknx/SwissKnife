@@ -1,8 +1,17 @@
-﻿namespace SwissKnife.Serverless.Pages.TemplatesPage.Types;
+﻿using Classeur.Core.CustomizableStructure;
 
-public record KnownFieldTypeDescription(string Name, Type Type)
+namespace SwissKnife.Serverless.Pages.TemplatesPage.Types;
+
+public readonly record struct KnownFieldTypeDescription(string Name, Type EditFormType, Type EditValueFormType)
 {
-    public string Id => Type.FullName!;
+    public bool Represents(AbstractFieldType field)
+    {
+        Type runtimeType = field.GetType();
 
-    public IUIFieldType Create() => (IUIFieldType)Activator.CreateInstance(Type)!;
+        return EditFormType.FindInterfaces(filter: (t, _) => t.IsGenericType
+                                                              && t.GetGenericTypeDefinition() == typeof(IFieldTypeUI<>)
+                                                              && t.GetGenericArguments()[0] == runtimeType,
+                                            null)
+                            .Any();
+    }
 }

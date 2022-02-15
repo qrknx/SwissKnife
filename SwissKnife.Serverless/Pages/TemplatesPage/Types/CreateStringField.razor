@@ -1,20 +1,26 @@
 ﻿@using Blazorise;
+@using Classeur.Core.CustomizableStructure
 
-@implements IFormFragment<StringUIFieldType>
+@implements IFieldTypeUI<StringFieldType>
 
 <Field>
 	<FieldLabel>Default</FieldLabel>
-	<TextEdit @bind-Text="@_field.Default"/>
+	<TextEdit @bind-Text="@_default"/>
 </Field>
 <Field>
 	<FieldLabel>Max length</FieldLabel>
-	<TextEdit @bind-Text="@_field.MaxLength"/>
+	<TextEdit @bind-Text="@_maxLength"/>
 </Field>
 
 
 @code {
 
-	private StringUIFieldType _field = new();
+    private string _default = StringFieldType.Defaults.Default;
+    private string _maxLength = StringFieldType.Defaults.MaxLength.ToString();
 
-	public StringUIFieldType Data => _field;
+    public FieldDescription GetDescription(FieldKey key, string label) => new(
+        key,
+        label,
+        new StringFieldType(maxLength: int.Parse(_maxLength), @default: _default));
+
 }

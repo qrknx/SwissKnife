@@ -6,6 +6,7 @@ using Blazorise.Icons.FontAwesome;
 using Classeur.Core;
 using Classeur.Core.CustomizableStructure;
 using Classeur.Core.Json;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
@@ -29,6 +30,7 @@ builder.Services
        })
        .AddBootstrapProviders()
        .AddFontAwesomeIcons()
+       .AddSingleton<EventCallbackFactory>()
        .AddSingleton(new JsonSerializerOptions
        {
            Converters =
@@ -42,8 +44,8 @@ builder.Services
        })
        .AddSingleton(_ => ImmutableList<KnownFieldTypeDescription>.Empty.AddRange(new KnownFieldTypeDescription[]
        {
-           new("String", typeof(StringUIFieldType)),
-           new("Int64", typeof(Int64UIFieldType)),
+           new("String", EditFormType: typeof(CreateStringField), EditValueFormType: typeof(StringValueUI)),
+           new("Int64", EditFormType: typeof(CreateInt64Field), EditValueFormType: typeof(Int64ValueUI)),
        }))
        // Important: see remarks for IRepository
        .AddSingleton<IRepository<Template, string>>(services =>

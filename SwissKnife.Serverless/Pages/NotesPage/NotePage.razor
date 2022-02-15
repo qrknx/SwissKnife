@@ -1,5 +1,6 @@
 ﻿@page "/notes/{NoteId:long}"
 
+@using Blazorise
 @using Classeur.Core
 @using Classeur.Core.CustomizableStructure
 
@@ -12,24 +13,41 @@
 
 <h1>@Title</h1>
 
-<StructuredDataForm TCustomizableDocument="Note" Document="_note" Schema="_schema"  />
+<Button Disabled="@(!_hasChanges)" Clicked="SaveAsync" Color="Color.Primary">Save changes</Button>
+
+<StructuredDataForm TCustomizableDocument="Note"
+                    Document="_note" Changing="CalculateChanges"
+                    Schema="_schema"
+                    @ref="_form" />
 
 @code {
 
+    private IRepository<Note, string> _repository = null!;
+    private StructuredDataForm<Note> _form = null!;
     private Note _note = null!;
     private StructureSchema _schema = null!;
+    private bool _hasChanges;
 
     private string Title => $"Note {NoteId}";
 
     [Parameter]
     public string NoteId { get; set; } = "";
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnInitializedAsync()
     {
         List<Template> templates = await _templatesRepository.GetAllAsync(CancellationToken.None);
-        IRepository<Note, string> repository = _notesRepositoryFactory.GetRepository(templates.Select(t => t.Schema));
-        _note = await repository.GetAsync(NoteId, CancellationToken.None);
+        _repository = _notesRepositoryFactory.GetRepository(templates.Select(t => t.Schema));
+        _note = await _repository.GetAsync(NoteId, CancellationToken.None);
         _schema = templates.First(t => t.Schema.Id == _note.Data.SchemaId).Schema;
     }
+
+    private async Task SaveAsync()
+    {
+        Note changed = _form.GetChanged();
+        _note = await _repository.UpdateAsync(changed, CancellationToken.None);
+        CalculateChanges();
+    }
+
+    private void CalculateChanges() => _hasChanges = !_note.Equals(_form.GetChanged());
 
 }

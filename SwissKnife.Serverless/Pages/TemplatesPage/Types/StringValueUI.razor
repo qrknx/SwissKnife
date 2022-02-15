@@ -1,0 +1,36 @@
+﻿@using Blazorise
+@using Classeur.Core.CustomizableStructure
+
+@implements IValueUI
+
+<Label For="@_textEdit?.ElementId">@Field.Label</Label>
+<TextEdit @ref="_textEdit" Text="@((string)Value)" TextChanged="OnTextChangedAsync" />
+
+@code {
+
+    private TextEdit? _textEdit;
+    private string _value = StringFieldType.Defaults.Default;
+
+    [Parameter]
+    public FieldDescription Field { get; set; }
+
+    [Parameter]
+    public object Value { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback Changing { get; set; }
+
+    public object GetValue() => _value;
+
+    protected override void OnInitialized() => _value = (string)Value;
+
+    private async Task OnTextChangedAsync(string text)
+    {
+        _value = Field.Type.TryParse(text, out object? parsed)
+            ? (string)parsed
+            : StringFieldType.Defaults.Default;
+
+        await Changing.InvokeAsync();
+    }
+
+}

@@ -5,27 +5,42 @@
 
 @typeparam TCustomizableDocument where TCustomizableDocument : ICustomizableDocument<TCustomizableDocument>
 
+@inject EventCallbackFactory _eventCallbackFactory;
 @inject ImmutableList<KnownFieldTypeDescription> _fieldTypeDescriptions
 
-@foreach (FieldDescription field in Schema.Latest.Fields)
+@foreach ((int i, FieldDescription field) in Schema.Latest.Fields.Select((f, i) => (i, f)))
 {
+    <DynamicComponent Type="_fieldTypeDescriptions.First(t => t.Represents(field.Type)).EditValueFormType"
+                      Parameters="GetParameters(field)"
+                      @ref="_fields[i]"/>
 }
 
 @code {
 
-    private readonly string _prefix = IncoherentId.Generate().ToString();
+    private DynamicComponent[] _fields = Array.Empty<DynamicComponent>();
 
     [Parameter]
     public TCustomizableDocument Document { get; set; } = default!;
 
     [Parameter]
-    public EventCallback<DocumentChangingArgs> DocumentChanging { get; set; }
+    public EventCallback Changing { get; set; }
 
     [Parameter]
     public StructureSchema Schema { get; set; } = null!;
 
-    private string CreateDomIdFor(IncoherentId id) => $"{_prefix}{id}";
+    protected override void OnInitialized() => _fields = new DynamicComponent[Schema.Latest.TotalFields];
 
-    public readonly record struct DocumentChangingArgs(TCustomizableDocument Updated, bool HasChanges);
+    private Dictionary<string, object> GetParameters(in FieldDescription field) => new()
+    {
+        [nameof(IValueUI.Field)] = field,
+        [nameof(IValueUI.Value)] = Document.Get(field.Key, Schema.Latest),
+        [nameof(IValueUI.Changing)] = _eventCallbackFactory.Create(receiver: this, OnFieldValueChangingAsync),
+    };
+
+    public TCustomizableDocument GetChanged() => _fields
+        .Select(c => (IValueUI)c.Instance!)
+        .Aggregate(Document, (current, ui) => current.Set(ui.Field.Key, ui.GetValue(), Schema.Latest));
+
+    private async Task OnFieldValueChangingAsync() => await Changing.InvokeAsync();
 
 }

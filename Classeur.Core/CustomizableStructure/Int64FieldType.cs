@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace Classeur.Core.CustomizableStructure;
 
@@ -33,7 +34,10 @@ public record Int64FieldType : AbstractFieldType
 
     public override T GetDefaultValue<T>() => (T)(object)Default;
 
-    public override object Parse(object value) => ThrowIfBoxedNot<long>(value, IsValid);
+    public override bool TryParse(object value, [NotNullWhen(returnValue: true)]out object? parsed)
+    {
+        return TryParse<long>(value, IsValid, out parsed);
+    }
 
     public override bool CanValueBeAssignedFrom(AbstractFieldType other) => other.GetType() == typeof(Int64FieldType)
                                                                             && other is Int64FieldType converted
