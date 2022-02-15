@@ -1,6 +1,6 @@
 ﻿using Classeur.Core.CustomizableStructure;
 
-namespace SwissKnife.Serverless.Pages.TemplatesPage.Types;
+namespace SwissKnife.Serverless.Templating;
 
 public readonly record struct KnownFieldTypeDescription(string Name, Type EditFormType, Type EditValueFormType)
 {

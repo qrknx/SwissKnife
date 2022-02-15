@@ -2,7 +2,7 @@
 using Classeur.Core.CustomizableStructure;
 using Microsoft.AspNetCore.Components;
 
-namespace SwissKnife.Serverless.Pages.TemplatesPage.Types;
+namespace SwissKnife.Serverless.Templating;
 
 public interface IValueUI
 {

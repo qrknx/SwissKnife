@@ -11,8 +11,8 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 using SwissKnife.Serverless;
-using SwissKnife.Serverless.Pages.TemplatesPage.Types;
 using SwissKnife.Serverless.Services;
+using SwissKnife.Serverless.Templating;
 
 WebAssemblyHostBuilder builder = WebAssemblyHostBuilder.CreateDefault(args);
 
