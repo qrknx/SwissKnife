@@ -1,6 +1,8 @@
 ﻿@using System.Collections.Immutable
+@using System.Diagnostics.CodeAnalysis
 @using Classeur.Core
 @using Classeur.Core.CustomizableStructure
+@using DotNetToolbox
 @using SwissKnife.Serverless.Pages.TemplatesPage.Types
 
 @typeparam TCustomizableDocument where TCustomizableDocument : ICustomizableDocument<TCustomizableDocument>
@@ -8,7 +10,8 @@
 @inject EventCallbackFactory _eventCallbackFactory;
 @inject ImmutableList<KnownFieldTypeDescription> _fieldTypeDescriptions
 
-@foreach ((int i, FieldDescription field) in Schema.Latest.Fields.Select((f, i) => (i, f)))
+@foreach ((int i, FieldDescription field) in Schema?.Latest.Fields.Select((f, i) => (i, f))
+                                             ?? Enumerable.Empty<(int, FieldDescription)>())
 {
     <DynamicComponent Type="_fieldTypeDescriptions.First(t => t.Represents(field.Type)).EditValueFormType"
                       Parameters="GetParameters(field)"
@@ -26,26 +29,42 @@
     public EventCallback Changing { get; set; }
 
     [Parameter]
-    public StructureSchema Schema { get; set; } = null!;
+    public StructureSchema? Schema { get; set; }
 
-    protected override void OnInitialized() => _fields = new DynamicComponent[Schema.Latest.TotalFields];
+    protected override void OnParametersSet()
+    {
+        if (Schema != null)
+        {
+            _fields = new DynamicComponent[Schema.Latest.TotalFields];
+        }
+    }
 
     private Dictionary<string, object> GetParameters(in FieldDescription field) => new()
     {
         [nameof(IValueUI.Field)] = field,
-        [nameof(IValueUI.Value)] = Document.Get(field.Key, Schema.Latest),
+        [nameof(IValueUI.Value)] = Document.Get(field.Key, Schema!.Latest),
         [nameof(IValueUI.Changing)] = _eventCallbackFactory.Create(receiver: this, OnFieldValueChangingAsync),
     };
 
-    public TCustomizableDocument GetChanged() => _fields
-        .Select(c =>
+    public bool TryGetChanged([NotNullWhen(returnValue: true)]out TCustomizableDocument? doc)
+    {
+        var data = _fields.ToList(c =>
         {
             var ui = (IValueUI)c.Instance!;
 
             return (ui.Field.Key, IsValid: ui.TryGetValue(out object? value), Value: value!);
-        })
-        .Where(x => x.IsValid)
-        .Aggregate(Document, (current, x) => current.Set(x.Key, x.Value, Schema.Latest));
+        });
+
+        if (data.Any(x => !x.IsValid))
+        {
+            doc = default;
+            return false;
+        }
+
+        doc = data.Aggregate(Document, (current, x) => current.Set(x.Key, x.Value, Schema!.Latest));
+
+        return true;
+    }
 
     private async Task OnFieldValueChangingAsync() => await Changing.InvokeAsync();
 

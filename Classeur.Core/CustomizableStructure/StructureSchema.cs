@@ -177,15 +177,16 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
                                        // Only known fields (either removed or not) remain
                                        .IntersectBy(newFields.Select(f => f.Key),
                                                     f => f.Field.Key)
-                                       // Exclude fields which are unchanged AND existing
-                                       .ExceptBy(newFields.Select(f => (f, false)),
-                                                 f => (f.Field, f.Removed))
+                                       // Exclude fields which are existing AND unchanged
+                                       .ExceptBy(newFields.Select(f => (false, f)),
+                                                 f => (f.Removed, f.Field))
                                        .ToList(f => f.Field);
 
         added = newFields.ExceptBy(oldFields.Keys, f => f.Key).ToList();
 
-        // Contains the same set of fields as `allNewestFields` but possible moves are not applied yet
+        // Contains the same set of fields as `newFields` but possible moves are not applied yet
         List<FieldDescription> fieldsToMove = oldFields.Values
+                                                       .Where(f => !f.Removed)
                                                        .OrderBy(f => f.Index)
                                                        .Select(f => f.Field)
                                                        .Except(removed)

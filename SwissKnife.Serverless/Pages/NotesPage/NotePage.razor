@@ -13,10 +13,10 @@
 
 <h1>@Title</h1>
 
-<Button Disabled="@(!_hasChanges)" Clicked="SaveAsync" Color="Color.Primary">Save changes</Button>
+<Button Disabled="@(!_hasValidChanges)" Clicked="SaveAsync" Color="Color.Primary">Save changes</Button>
 
 <StructuredDataForm TCustomizableDocument="Note"
-                    Document="_note" Changing="CalculateChanges"
+                    Document="_note" Changing="UpdateHasChanges"
                     Schema="_schema"
                     @ref="_form" />
 
@@ -26,28 +26,31 @@
     private StructuredDataForm<Note> _form = null!;
     private Note _note = null!;
     private StructureSchema _schema = null!;
-    private bool _hasChanges;
+    private bool _hasValidChanges;
 
     private string Title => $"Note {NoteId}";
 
     [Parameter]
-    public string NoteId { get; set; } = "";
+    public long NoteId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         List<Template> templates = await _templatesRepository.GetAllAsync(CancellationToken.None);
         _repository = _notesRepositoryFactory.GetRepository(templates.Select(t => t.Schema));
-        _note = await _repository.GetAsync(NoteId, CancellationToken.None);
+        _note = await _repository.GetAsync(NoteId.ToString(), CancellationToken.None);
         _schema = templates.First(t => t.Schema.Id == _note.Data.SchemaId).Schema;
     }
 
     private async Task SaveAsync()
     {
-        Note changed = _form.GetChanged();
-        _note = await _repository.UpdateAsync(changed, CancellationToken.None);
-        CalculateChanges();
+        _form.TryGetChanged(out Note? changed);
+        _note = await _repository.UpdateAsync(changed!, CancellationToken.None);
+        UpdateHasChanges();
     }
 
-    private void CalculateChanges() => _hasChanges = !_note.Equals(_form.GetChanged());
+    private void UpdateHasChanges()
+    {
+        _hasValidChanges = _form.TryGetChanged(out Note? changed) && !_note.Equals(changed);
+    }
 
 }

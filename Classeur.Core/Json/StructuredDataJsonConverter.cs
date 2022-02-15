@@ -81,6 +81,7 @@ public class StructuredDataJsonConverter : JsonConverter<StructuredData>
 
         foreach (FieldDescription field in version.UnorderedFields)
         {
+            writer.WritePropertyName(field.Key.Name);
             JsonSerializer.Serialize(writer, value.Get<object>(field.Key, version), field.Type.UnderlyingType, options);
         }
 
