@@ -44,7 +44,7 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
 
             switch (reader.GetString())
             {
-                case nameof(FieldAdded):
+                case nameof(FieldSet):
                     version = ReadVersion(ref reader);
                     FieldKey keyAdded = reader.DeserializeProperty<FieldKey>(nameof(FieldDescription.Key), options);
                     reader.MoveIfEquals(nameof(FieldDescription.Label));
@@ -56,7 +56,7 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
                     var typeAdded = (AbstractFieldType?)reader.DeserializeProperty(FieldTypeFieldName, type, options)
                                     ?? throw new JsonException();
 
-                    change = FieldAdded(new FieldDescription(keyAdded, label, typeAdded), version);
+                    change = FieldSet(new FieldDescription(keyAdded, label, typeAdded), version);
                     break;
 
                 case nameof(FieldRemoved):
@@ -110,8 +110,8 @@ public class StructureSchemaJsonConverter : JsonConverter<StructureSchema>
             
             switch (change)
             {
-                case {IsAdded: true, Field: {Key: var key, Label: var label, Type: var type}}:
-                    writer.WriteString(ChangeTypeFieldName, nameof(FieldAdded));
+                case {IsSet: true, Field: {Key: var key, Label: var label, Type: var type}}:
+                    writer.WriteString(ChangeTypeFieldName, nameof(FieldSet));
                     writer.WriteNumber(nameof(StructureSchema.Change.Version), change.Version);
                     writer.WritePropertyName(nameof(FieldDescription.Key));
                     JsonSerializer.Serialize(writer, key, options);

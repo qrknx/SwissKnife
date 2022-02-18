@@ -154,7 +154,7 @@
     {
         Schema = SelectedTemplate.Schema
                                  .ToLatestVersionMutator()
-                                 .AddField(field, preserveVersion: await HasPendingChangesAsync()),
+                                 .SetField(field, preserveVersion: await HasPendingChangesAsync()),
     };
 
     private async Task UpdateHasChangesAsync()

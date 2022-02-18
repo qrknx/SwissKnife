@@ -37,8 +37,8 @@ public partial class StructureSchemaJsonConverterTests
 
             Add((new[]
                  {
-                     StructureSchema.Change.FieldAdded(new(new("f1"), "F1", new StringFieldType(10, "abc")), 1),
-                     StructureSchema.Change.FieldAdded(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)), 1),
+                     StructureSchema.Change.FieldSet(new(new("f1"), "F1", new StringFieldType(10, "abc")), 1),
+                     StructureSchema.Change.FieldSet(new(new("f2"), "F2", new Int64FieldType(-100, 200, 100)), 1),
                      StructureSchema.Change.FieldMoved(new("f2"), 0, 2),
                      StructureSchema.Change.FieldRemoved(new("f1"), 3),
                  },
@@ -49,7 +49,7 @@ public partial class StructureSchemaJsonConverterTests
                      {
                          new
                          {
-                             ChangeType = "FieldAdded",
+                             ChangeType = "FieldSet",
                              Version = 1,
                              Key = "f1",
                              Label = "F1",
@@ -62,7 +62,7 @@ public partial class StructureSchemaJsonConverterTests
                          },
                          new
                          {
-                             ChangeType = "FieldAdded",
+                             ChangeType = "FieldSet",
                              Version = 1,
                              Key = "f2",
                              Label = "F2",

@@ -12,7 +12,7 @@ public partial class StructureSchema
 
         public readonly int Version;
 
-        public bool IsAdded => _field != null;
+        public bool IsSet => _field != null;
 
         public bool IsRemoved => _key != null && _position == null;
 
@@ -34,7 +34,7 @@ public partial class StructureSchema
             _position = position;
         }
 
-        public static Change FieldAdded(in FieldDescription field, int version) => new(version, field);
+        public static Change FieldSet(in FieldDescription field, int version) => new(version, field);
 
         public static Change FieldRemoved(in FieldKey key, int version) => new(version, key: key);
 
@@ -45,9 +45,9 @@ public partial class StructureSchema
 
         private bool PrintMembers(StringBuilder builder)
         {
-            if (IsAdded)
+            if (IsSet)
             {
-                builder.Append($"{nameof(FieldAdded)} = {Field}");
+                builder.Append($"{nameof(FieldSet)} = {Field}");
             }
             else if (IsRemoved)
             {

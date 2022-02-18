@@ -18,9 +18,9 @@ public partial class StructureSchema
 
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
-        public StructureSchema AddField(FieldDescription field, bool preserveVersion) => preserveVersion
-            ? UpdateInLatestVersion(FieldAdded(field, Latest.VersionIndex))
-            : Schema.AddChange(FieldAdded(field, Latest.NextVersion));
+        public StructureSchema SetField(FieldDescription field, bool preserveVersion) => preserveVersion
+            ? UpdateInLatestVersion(FieldSet(field, Latest.VersionIndex))
+            : Schema.AddChange(FieldSet(field, Latest.NextVersion));
 
         public StructureSchema RemoveField(FieldKey key, bool preserveVersion) => preserveVersion
             ? UpdateInLatestVersion(FieldRemoved(key, Latest.VersionIndex))
@@ -51,8 +51,8 @@ public partial class StructureSchema
             return new StructureSchema(Schema.Id,
                                        Changes.Take(totalPreviousChanges)
                                               .Concat(removed.Select(f => FieldRemoved(f.Key, latest)))
-                                              .Concat(restoredAndOrEdited.Select(f => FieldAdded(f, latest)))
-                                              .Concat(added.Select(f => FieldAdded(f, latest)))
+                                              .Concat(restoredAndOrEdited.Select(f => FieldSet(f, latest)))
+                                              .Concat(added.Select(f => FieldSet(f, latest)))
                                               .Concat(moves)
                                               .ToImmutableList());
         }

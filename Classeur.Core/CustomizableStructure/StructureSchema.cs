@@ -46,7 +46,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
     {
         { Version: var v } when v != Latest.VersionIndex && v != Latest.NextVersion => throw new ArgumentException(),
 
-        { IsAdded: true } => SelfWith(change),
+        { IsSet: true } => SelfWith(change),
 
         { IsRemoved: true, Key: var key } when Latest.Has(key) => SelfWith(change),
 
@@ -78,7 +78,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
         {
             switch (change)
             {
-                case { IsAdded: true, Field: { Key: var key } field } when !fields.ContainsKey(key):
+                case { IsSet: true, Field: { Key: var key } field } when !fields.ContainsKey(key):
                     fields.Add(field.Key, new FieldState
                     {
                         Index = i,
@@ -88,7 +88,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
                     break;
 
                 // Restore and/or edit case
-                case { IsAdded: true, Field: { Key: var key } field }
+                case { IsSet: true, Field: { Key: var key } field }
                     when fields[key] is { Field.Type: var existingType } existing
                          && field.Type.CanValueBeAssignedFrom(existingType):
                     fields[key] = existing with
