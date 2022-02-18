@@ -1,0 +1,86 @@
+﻿@using Blazorise
+@using Classeur.Core
+@using Classeur.Core.CustomizableStructure
+
+<ListGroup>
+    @foreach (FieldDescription field in Template?.Schema.Latest.Fields ?? Enumerable.Empty<FieldDescription>())
+    {
+#pragma warning disable CS8321
+        static string IsEnabledColor(bool yes) => yes ? "text-info" : "text-muted";
+#pragma warning restore CS8321
+
+        bool canMoveUp = CanMove(field, relativeMove: -1, out int upperPosition);
+        bool canMoveDown = CanMove(field, relativeMove: 1, out int lowerPosition);
+
+        <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center" title="@field">
+            <button @onclick="@(async () => await _editDialog.ShowAsync(field))"
+                    class="flex-grow-1 text-left border-0 bg-transparent"
+                    aria-label="Edit field">
+                @field.Label
+            </button>
+
+            <span>
+                <button @onclick="@(async () => await MoveAsync(field, upperPosition))"
+                        class="border-0 bg-transparent"
+                        title="Move field up"
+                        disabled="@(!canMoveUp)">
+                    <span class="oi oi-arrow-circle-top @IsEnabledColor(canMoveUp)" aria-hidden="true"></span>
+                </button>
+
+                <button @onclick="@(async () => await MoveAsync(field, lowerPosition))"
+                        class="border-0 bg-transparent"
+                        title="Move field down"
+                        disabled="@(!canMoveDown)">
+                    <span class="oi oi-arrow-circle-bottom @IsEnabledColor(canMoveDown)" aria-hidden="true"></span>
+                </button>
+
+                <button @onclick="@(async () => await Removing.InvokeAsync(field.Key))"
+                        class="border-0 bg-transparent"
+                        title="Remove field">
+                    <span class="oi oi-circle-x text-danger" aria-hidden="true"></span>
+                </button>
+            </span>
+        </ListGroupItem>
+    }
+</ListGroup>
+
+<ChangeFieldModal @ref="_editDialog" FieldChanging="@OnFieldEditingAsync" />
+
+@code {
+
+    private ChangeFieldModal _editDialog = null!;
+
+    [Parameter]
+    public Template? Template { get; set; }
+
+    [Parameter]
+    public EventCallback<(FieldKey Key, int Position)> Moving { get; set; }
+
+    [Parameter]
+    public EventCallback<FieldDescription> Editing { get; set; }
+
+    [Parameter]
+    public EventCallback<FieldKey> Removing { get; set; }
+
+    private bool CanMove(FieldDescription field, int relativeMove, out int newPosition)
+    {
+        newPosition = Template!.Schema
+                              .Latest
+                              .Fields.Select((f, i) => (Index: i, Field: f))
+                              .First(x => x.Field.Key == field.Key)
+                              .Index + relativeMove;
+
+        return MathUtils.Intersects(newPosition, min: 0, max: Template.Schema.Latest.TotalFields - 1);
+    }
+
+    private async Task MoveAsync(FieldDescription field, int position)
+    {
+        await Moving.InvokeAsync((field.Key, position));
+    }
+
+    private async Task OnFieldEditingAsync((FieldDescription?, FieldDescription New) change)
+    {
+        await Editing.InvokeAsync(change.New);
+        await _editDialog.CloseAsync();
+    }
+}
