@@ -47,6 +47,10 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
     {
         { Version: var v } when v != Latest.VersionIndex && v != Latest.NextVersion => throw new ArgumentException(),
 
+        { IsSet: true, Field: {Key: var key} field } when Latest.TryGetField(key, out _, out FieldDescription existing)
+                                                          && existing.Equals(field)
+            => this,
+
         { IsSet: true } => SelfWith(change),
 
         { IsRemoved: true, Key: var key } when Latest.Has(key) => SelfWith(change),
