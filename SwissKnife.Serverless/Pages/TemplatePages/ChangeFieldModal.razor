@@ -22,9 +22,9 @@
 			<Field>
 				<FieldLabel>Type</FieldLabel>
 				<Select @bind-SelectedValue="_selectedIndex">
-					@foreach ((string name, Type editFormType, _) in _fieldTypeDescriptions)
+					@foreach ((int i, string name) in _fieldTypeDescriptions.Select((t, i) => (i, t.Name)))
 					{
-						<SelectItem Value="@GetIndex(editFormType)">@name</SelectItem>
+						<SelectItem Value="i">@name</SelectItem>
 					}
 				</Select>
 			</Field>
@@ -61,10 +61,10 @@
 
     protected override void OnParametersSet()
     {
-        if (_field is { Label: var label, Type: var fieldType })
+        if (_field is { Label: var label, Type: var type })
         {
             _label = label;
-            _selectedIndex = GetIndex(fieldType.GetType());
+            _selectedIndex = _fieldTypeDescriptions.FindIndex(f => f.Represents(type));
         }
     }
 
@@ -89,15 +89,6 @@
 
 		await FieldChanging.InvokeAsync((_field, ui.GetDescription(_field?.Key ?? FieldKey.For(_label), _label)));
 	}
-
-    private int GetIndex(Type type) => _fieldTypeDescriptions.FindIndex(f =>
-    {
-		return f.EditFormType
-                .FindInterfaces((t, _) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IFieldTypeUI<>),
-                                filterCriteria: null)
-                .Single()
-                .GetGenericArguments()[0] == type;
-    });
 
     private Dictionary<string, object?> GetParameters() => new()
     {

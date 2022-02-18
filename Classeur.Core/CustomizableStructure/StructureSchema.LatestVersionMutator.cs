@@ -73,15 +73,17 @@ public partial class StructureSchema
             CalculateDiff(orderedChanges: Changes.Add(change),
                           sourceVersion: previous,
                           targetVersion: latest,
-                          removed: out List<FieldDescription> removed,
-                          restoredAndOrEdited: out List<FieldDescription> restoredAndOrEdited,
+                          removed: out List<Change> removed,
+                          existingEdited: out List<Change> existingEdited,
+                          restoredWithPossibleEdit: out List<Change> restoredWithPossibleEdit,
                           added: out List<FieldDescription> added,
                           moves: out List<Change> moves);
 
             return new StructureSchema(Schema.Id,
                                        Changes.Take(totalPreviousChanges)
-                                              .Concat(removed.Select(f => FieldRemoved(f.Key, latest)))
-                                              .Concat(restoredAndOrEdited.Select(f => FieldSet(f, latest)))
+                                              .Concat(removed)
+                                              .Concat(existingEdited)
+                                              .Concat(restoredWithPossibleEdit)
                                               .Concat(added.Select(f => FieldSet(f, latest)))
                                               .Concat(moves)
                                               .ToImmutableList());

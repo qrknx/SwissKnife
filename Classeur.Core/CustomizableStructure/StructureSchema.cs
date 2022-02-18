@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using DotNetToolbox;
 
 namespace Classeur.Core.CustomizableStructure;
@@ -160,39 +161,52 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
     private static void CalculateDiff(ImmutableList<Change> orderedChanges,
                                       int sourceVersion,
                                       int targetVersion,
-                                      out List<FieldDescription> removed,
-                                      out List<FieldDescription> restoredAndOrEdited,
+                                      out List<Change> removed,
+                                      out List<Change> existingEdited,
+                                      out List<Change> restoredWithPossibleEdit,
                                       out List<FieldDescription> added,
                                       out List<Change> moves)
     {
         Dictionary<FieldKey, FieldState> oldFields = GetFieldsForVersion(sourceVersion, orderedChanges);
         List<FieldDescription> newFields = GetFieldSnapshotForVersion(targetVersion, orderedChanges).ToList();
 
-        removed = oldFields.Values
-                           .Where(f => !f.Removed)
-                           .ExceptBy(newFields.Select(f => f.Key), state => state.Field.Key)
-                           .ToList(state => state.Field);
+        List<FieldDescription> removedFields = oldFields.Values
+                                                        .Where(f => !f.Removed)
+                                                        .ExceptBy(newFields.Select(f => f.Key), f => f.Key)
+                                                        .ToList(f => f.Field);
 
-        restoredAndOrEdited = oldFields.Values
-                                       // Only known fields (either removed or not) remain
-                                       .IntersectBy(newFields.Select(f => f.Key),
-                                                    f => f.Field.Key)
-                                       // Exclude fields which are existing AND unchanged
-                                       .ExceptBy(newFields.Select(f => (false, f)),
-                                                 f => (f.Removed, f.Field))
-                                       .ToList(f => f.Field);
+        existingEdited = oldFields.Values
+                                  .Where(f => !f.Removed)
+                                  .IntersectBy(newFields.Select(f => f.Key), f => f.Key)
+                                  .ExceptBy(newFields, f => f.Field)
+                                  // O(n^2)
+                                  // Important: change should be created using NEWER field
+                                  .ToList(f =>
+                                  {
+                                      return Change.FieldSet(newFields.First(f1 => f1.Key == f.Key), targetVersion);
+                                  });
+
+        // Restored and Restored + Edited are included
+        HashSet<FieldKey> restoredKeys = oldFields.Values
+                                                  .Where(f => f.Removed)
+                                                  .IntersectBy(newFields.Select(f => f.Key), f => f.Key)
+                                                  .Select(f => f.Key)
+                                                  .ToHashSet();
 
         added = newFields.ExceptBy(oldFields.Keys, f => f.Key).ToList();
 
         // Contains the same set of fields as `newFields` but possible moves are not applied yet
-        List<FieldDescription> fieldsToMove = oldFields.Values
-                                                       .Where(f => !f.Removed)
-                                                       .OrderBy(f => f.Index)
-                                                       .Select(f => f.Field)
-                                                       .Except(removed)
-                                                       .Concat(restoredAndOrEdited)
-                                                       .Concat(added)
-                                                       .ToList();
+        List<FieldDescription> fieldsToMove
+            = oldFields.Values
+                       // Restore and Edit (existingEdited) doesn't change position
+                       .Where(f => !f.Removed || restoredKeys.Contains(f.Key))
+                       .OrderBy(f => f.Index)
+                       .Select(f => f.Field)
+                       .Except(removedFields)
+                       .Concat(added)
+                       .ToList();
+
+        Debug.Assert(fieldsToMove.Count == newFields.Count);
 
         moves = new List<Change>(capacity: Math.Max(oldFields.Count, newFields.Count));
 
@@ -214,6 +228,11 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
                 moves.Add(Change.FieldMoved(fieldToMove.Key, position: i, targetVersion));
             }
         }
+
+        removed = removedFields.ToList(f => Change.FieldRemoved(f.Key, targetVersion));
+
+        restoredWithPossibleEdit = newFields.IntersectBy(restoredKeys, f => f.Key)
+                                            .ToList(f => Change.FieldSet(f, targetVersion));
     }
 
     private StructureSchema SelfWith(in Change change) => new(Id, Changes.Add(change));
@@ -228,5 +247,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
         public int Index;
         public FieldDescription Field;
         public bool Removed;
+
+        public FieldKey Key => Field.Key;
     }
 }
