@@ -44,5 +44,5 @@ public record Int64FieldType : AbstractFieldType
                                                                             && converted.Min >= Min
                                                                             && converted.Max <= Max;
 
-    private bool IsValid(long s) => MathUtils.Intersects(Default, min: Min, max: Max);
+    private bool IsValid(long i) => MathUtils.Intersects(i, min: Min, max: Max);
 }
