@@ -18,9 +18,39 @@ public partial class StructureSchema
 
         public LatestVersionMutator(StructureSchema schema) => Schema = schema;
 
-        public StructureSchema SetField(FieldDescription field, bool preserveVersion) => preserveVersion
-            ? UpdateInLatestVersion(FieldSet(field, Latest.VersionIndex))
-            : Schema.AddChange(FieldSet(field, Latest.NextVersion));
+        public StructureSchema SetField(FieldDescription field, bool preserveVersion)
+        {
+            if (!preserveVersion)
+            {
+                return Schema.AddChange(FieldSet(field, Latest.NextVersion));
+            }
+
+            if (SetFieldWasNotLastOperationInLatestChanges(field.Key, Schema))
+            {
+                return UpdateInLatestVersion(FieldSet(field, Latest.VersionIndex));
+            }
+
+            // Now one or more changes with IsSet = true already exist in latest version.
+            // The newest change can be incompatible with them and meanwhile compatible with previous version changes.
+
+            StructureSchema updated = RemoveField(field.Key, preserveVersion: true);
+
+            return updated.ToLatestVersionMutator()
+                          .SetField(field, preserveVersion: updated.Latest.VersionIndex == Latest.VersionIndex);
+
+            static bool SetFieldWasNotLastOperationInLatestChanges(FieldKey fieldKey, StructureSchema schema)
+            {
+                Change change = schema.LatestChanges
+                                      .LastOrDefault(c => c switch
+                                      {
+                                          { IsSet: true, Field.Key: var key } => key == fieldKey,
+                                          { IsRemoved: true, Key: var key } => key == fieldKey,
+                                          _ => false,
+                                      });
+
+                return change is { IsNop: true } or { IsRemoved: true };
+            }
+        }
 
         public StructureSchema RemoveField(FieldKey key, bool preserveVersion) => preserveVersion
             ? UpdateInLatestVersion(FieldRemoved(key, Latest.VersionIndex))
