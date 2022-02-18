@@ -16,17 +16,12 @@
 
 <Button Disabled="@(!_hasValidChanges)" Clicked="SaveAsync" Color="Color.Primary">Save changes</Button>
 
-<StructuredDataForm TCustomizableDocument="Note"
-                    Document="_note" Changing="UpdateHasChanges"
-                    Schema="_schema"
-                    @ref="_form" />
+<StructuredDataForm TCustomizableDocument="Note" ViewModel="_vm" />
 
 @code {
 
     private IRepository<Note, string> _repository = null!;
-    private StructuredDataForm<Note> _form = null!;
-    private Note _note = null!;
-    private StructureSchema _schema = null!;
+    private StructuredDataViewModel<Note> _vm = null!;
     private bool _hasValidChanges;
 
     private string Title => $"Note {NoteId}";
@@ -38,20 +33,27 @@
     {
         List<Template> templates = await _templatesRepository.GetAllAsync(CancellationToken.None);
         _repository = _notesRepositoryFactory.GetRepository(templates.Select(t => t.Schema));
-        _note = await _repository.GetAsync(NoteId.ToString(), CancellationToken.None);
-        _schema = templates.First(t => t.Schema.Id == _note.Data.SchemaId).Schema;
+        Note note = await _repository.GetAsync(NoteId.ToString(), CancellationToken.None);
+        StructureSchema schema = templates.First(t => t.Schema.Id == note.Data.SchemaId).Schema;
+        _vm = new StructuredDataViewModel<Note>(note, schema);
+        _vm.Changing += UpdateChangesStatus;
     }
 
     private async Task SaveAsync()
     {
-        _form.TryGetChanged(out Note? changed);
-        _note = await _repository.UpdateAsync(changed!, CancellationToken.None);
-        UpdateHasChanges();
+        _vm.Changing -= UpdateChangesStatus;
+        _vm = _vm with
+        {
+            Document = await _repository.UpdateAsync(_vm.GetDocument(), CancellationToken.None),
+        };
+        _vm.Changing += UpdateChangesStatus;
+        _hasValidChanges = false;
     }
 
-    private void UpdateHasChanges()
+    private void UpdateChangesStatus()
     {
-        _hasValidChanges = _form.TryGetChanged(out Note? changed) && !_note.Equals(changed);
+        _hasValidChanges = _vm.TryGetDocument(out Note? changed) && !_vm.Document.Equals(changed);
+        StateHasChanged();
     }
 
 }

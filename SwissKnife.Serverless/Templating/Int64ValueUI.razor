@@ -1,57 +1,41 @@
 ﻿@using Blazorise
 @using Classeur.Core.CustomizableStructure
-@using System.Diagnostics.CodeAnalysis
 
 @implements IValueUI
 
 <Label For="@_textEdit?.ElementId">@Field.Label</Label>
-<TextEdit @ref="_textEdit" Text="@_text" TextChanged="OnTextChangedAsync" Border="_border" />
+<TextEdit @ref="_textEdit"
+          Text="@(ViewModel?.GetForUI(Field.Key).ToString() ?? Int64FieldType.Defaults.Default.ToString())"
+          TextChanged="OnTextChanged"
+          Border="_border" />
 
 @code {
 
     private TextEdit? _textEdit;
     private IFluentBorder _border = Border.Success;
-    private string _text = Int64FieldType.Defaults.Default.ToString();
 
     [Parameter]
     public FieldDescription Field { get; set; }
 
     [Parameter]
-    public object Value { private get; set; } = null!;
+    public IStructuredDataViewModel? ViewModel { get; set; }
 
-    [Parameter]
-    public EventCallback Changing { get; set; }
-
-    public bool TryGetValue([NotNullWhen(returnValue: true)]out object? value)
+    protected override void OnParametersSet()
     {
-        if (long.TryParse(_text, out long i) && Field.Type.TryParse(i, out object? parsed))
+        if (ViewModel != null!)
         {
-            value = (long)parsed;
-            return true;
+            _border = ViewModel.TryGetForModel(Field.Key, out object? value)
+                      && Field.Type.TryParse(value, out _)
+                ? Border.Success
+                : Border.Warning;
         }
-
-        value = null;
-        return false;
     }
 
-    protected override void OnInitialized()
-    {
-        _text = ((long)Value).ToString();
-        UpdateValidation();
-    }
-
-    private async Task OnTextChangedAsync(string text)
-    {
-        _text = text;
-
-        UpdateValidation();
-
-        await Changing.InvokeAsync();
-    }
-
-    private void UpdateValidation() => _border = long.TryParse(_text, out long i)
-                                                 && Field.Type.TryParse(i, out _)
-        ? Border.Success
-        : Border.Warning;
+    private void OnTextChanged(string text) => ViewModel!.Set(Field.Key, text, obj => obj switch
+                                                                                   {
+                                                                                       long => obj,
+                                                                                       string s => long.Parse(s),
+                                                                                       _ => throw new Exception(),
+                                                                                   });
 
 }

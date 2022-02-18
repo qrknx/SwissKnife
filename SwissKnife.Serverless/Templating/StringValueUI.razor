@@ -1,56 +1,40 @@
 ﻿@using Blazorise
 @using Classeur.Core.CustomizableStructure
-@using System.Diagnostics.CodeAnalysis
 
 @implements IValueUI
 
 <Label For="@_textEdit?.ElementId">@Field.Label</Label>
-<TextEdit @ref="_textEdit" Text="@_text" TextChanged="OnTextChangedAsync" Border="_border" />
+<TextEdit @ref="_textEdit"
+          Text="@(ViewModel?.GetForUI(Field.Key).ToString() ?? StringFieldType.Defaults.Default)"
+          TextChanged="OnTextChanged"
+          Border="_border" />
 
 @code {
 
     private TextEdit? _textEdit;
     private IFluentBorder _border = Border.Success;
-    private string _text = StringFieldType.Defaults.Default;
 
     [Parameter]
     public FieldDescription Field { get; set; }
 
     [Parameter]
-    public object Value { private get; set; } = null!;
+    public IStructuredDataViewModel? ViewModel { get; set; }
 
-    [Parameter]
-    public EventCallback Changing { get; set; }
-
-    public bool TryGetValue([NotNullWhen(returnValue: true)]out object? value)
+    protected override void OnParametersSet()
     {
-        if (Field.Type.TryParse(_text, out object? parsed))
+        if (ViewModel != null!)
         {
-            value = (string)parsed;
-            return true;
+            _border = ViewModel.TryGetForModel(Field.Key, out object? value)
+                      && Field.Type.TryParse(value, out _)
+                ? Border.Success
+                : Border.Warning;
         }
-
-        value = null;
-        return false;
     }
 
-    protected override void OnInitialized()
-    {
-        _text = (string)Value;
-        UpdateValidation();
-    }
-
-    private async Task OnTextChangedAsync(string text)
-    {
-        _text = text;
-
-        UpdateValidation();
-
-        await Changing.InvokeAsync();
-    }
-
-    private void UpdateValidation() => _border = Field.Type.TryParse(_text, out _)
-        ? Border.Success
-        : Border.Warning;
+    private void OnTextChanged(string text) => ViewModel!.Set(Field.Key, text, obj => obj switch
+                                                                                   {
+                                                                                       string => obj,
+                                                                                       _ => throw new Exception(),
+                                                                                   });
 
 }
