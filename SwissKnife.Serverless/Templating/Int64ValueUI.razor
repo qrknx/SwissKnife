@@ -3,7 +3,7 @@
 
 @implements IValueUI
 
-<Label For="@_textEdit?.ElementId">@Field.Label</Label>
+<label for="@_textEdit?.ElementId">@Field.Label</label>
 <TextEdit @ref="_textEdit"
           Text="@(ViewModel?.GetForUI(Field.Key).ToString() ?? Int64FieldType.Defaults.Default.ToString())"
           TextChanged="OnTextChanged"

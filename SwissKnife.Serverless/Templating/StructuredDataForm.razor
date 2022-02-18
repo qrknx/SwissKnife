@@ -10,8 +10,10 @@
 
 @foreach (FieldDescription field in ViewModel?.Fields ?? Enumerable.Empty<FieldDescription>())
 {
-    <DynamicComponent Type="_fieldTypeDescriptions.First(t => t.Represents(field.Type)).EditValueFormType"
-                      Parameters="GetParameters(field)"/>
+    <div class="form-group">
+        <DynamicComponent Type="_fieldTypeDescriptions.First(t => t.Represents(field.Type)).EditValueFormType"
+                          Parameters="GetParameters(field)"/>
+    </div>
 }
 
 @code {

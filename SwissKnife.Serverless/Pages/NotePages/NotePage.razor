@@ -14,9 +14,11 @@
 
 <h1>@Title</h1>
 
-<Button Disabled="@(!_hasValidChanges)" Clicked="SaveAsync" Color="Color.Primary">Save changes</Button>
+<form>
+    <Button Disabled="@(!_hasValidChanges)" Clicked="SaveAsync" Color="Color.Primary">Save changes</Button>
 
-<StructuredDataForm TCustomizableDocument="Note" ViewModel="_vm" />
+    <StructuredDataForm TCustomizableDocument="Note" ViewModel="_vm" />
+</form>
 
 @code {
 
@@ -52,7 +54,11 @@
 
     private void UpdateChangesStatus()
     {
-        _hasValidChanges = _vm.TryGetDocument(out Note? changed) && !_vm.Document.Equals(changed);
+        StructuredData.LaterVersionComparer comparer = new(_vm.Schema);
+
+        _hasValidChanges = _vm.TryGetDocument(out Note? changed)
+                           && !comparer.Equals(_vm.Document.Data, changed.Data);
+
         StateHasChanged();
     }
 

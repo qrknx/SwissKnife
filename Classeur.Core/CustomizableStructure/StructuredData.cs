@@ -99,4 +99,32 @@ public readonly struct StructuredData
     {
         return field.Type.Parse(value);
     }
+
+    public class LaterVersionComparer : IEqualityComparer<StructuredData>
+    {
+        private readonly StructureSchema _schema;
+
+        public LaterVersionComparer(StructureSchema schema) => _schema = schema;
+
+        public bool Equals(StructuredData x, StructuredData y)
+        {
+            if (_schema.Id != x.SchemaId && _schema.Id != y.SchemaId)
+            {
+                throw new ArgumentException();
+            }
+
+            if (x.SchemaId != y.SchemaId)
+            {
+                return false;
+            }
+
+            StructureSchemaVersion version = _schema.GetVersion(x.VersionIndex <= y.VersionIndex
+                                                                    ? y.VersionIndex
+                                                                    : x.VersionIndex);
+
+            return version.UnorderedKeys.All(key => x.Get<object>(key, version).Equals(y.Get<object>(key, version)));
+        }
+
+        public int GetHashCode(StructuredData obj) => obj.SchemaId.UnderlyingValue.GetHashCode();
+    }
 }

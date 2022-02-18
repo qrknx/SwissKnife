@@ -17,6 +17,8 @@ public class StructureSchemaVersion
 
     public IEnumerable<FieldDescription> Fields => _fieldsByKey.Values.OrderBy(x => x.Index).Select(x => x.Field);
 
+    public IEnumerable<FieldKey> UnorderedKeys => _fieldsByKey.Keys;
+
     public IEnumerable<FieldDescription> UnorderedFields => _fieldsByKey.Values.Select(x => x.Field);
 
     public int TotalFields => _fieldsByKey.Count;
