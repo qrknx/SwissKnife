@@ -179,16 +179,11 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
                                                         .ExceptBy(newFields.Select(f => f.Key), f => f.Key)
                                                         .ToList(f => f.Field);
 
-        existingEdited = oldFields.Values
-                                  .Where(f => !f.Removed)
-                                  .IntersectBy(newFields.Select(f => f.Key), f => f.Key)
-                                  .ExceptBy(newFields, f => f.Field)
-                                  // O(n^2)
-                                  // Important: change should be created using NEWER field
-                                  .ToList(f =>
-                                  {
-                                      return Change.FieldSet(newFields.First(f1 => f1.Key == f.Key), targetVersion);
-                                  });
+        // Important: change should be created using NEWER field
+        existingEdited = newFields.Except(oldFields.Values
+                                                   .Where(f => !f.Removed)
+                                                   .Select(f => f.Field))
+                                  .ToList(f => Change.FieldSet(f, targetVersion));
 
         // Restored and Restored + Edited are included
         HashSet<FieldKey> restoredKeys = oldFields.Values
@@ -197,6 +192,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
                                                   .Select(f => f.Key)
                                                   .ToHashSet();
 
+        // Important: change should be created using NEWER field
         added = newFields.ExceptBy(oldFields.Keys, f => f.Key).ToList();
 
         // Contains the same set of fields as `newFields` but possible moves are not applied yet
@@ -235,6 +231,7 @@ public partial class StructureSchema : IEntity<IncoherentId>, IEntity<string>
 
         removed = removedFields.ToList(f => Change.FieldRemoved(f.Key, targetVersion));
 
+        // Important: change should be created using NEWER field
         restoredWithPossibleEdit = newFields.IntersectBy(restoredKeys, f => f.Key)
                                             .ToList(f => Change.FieldSet(f, targetVersion));
     }
