@@ -53,7 +53,7 @@ public record StructuredDataViewModel<TCustomizableDocument>(TCustomizableDocume
         return current.Set(pair.Key, pair.Value.GetModelValue(), Schema.Latest);
     });
 
-    private struct Data
+    private record struct Data()
     {
         public object Value = null!;
         public IStructuredDataViewModel.UITypeToModelTypeConverter Converter = null!;
