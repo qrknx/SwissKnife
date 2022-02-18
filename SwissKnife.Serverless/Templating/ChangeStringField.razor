@@ -18,9 +18,21 @@
     private string _default = StringFieldType.Defaults.Default;
     private string _maxLength = StringFieldType.Defaults.MaxLength.ToString();
 
+    [Parameter]
+    public StringFieldType? FieldType { get; set; }
+
     public FieldDescription GetDescription(FieldKey key, string label) => new(
         key,
         label,
         new StringFieldType(maxLength: int.Parse(_maxLength), @default: _default));
+
+    protected override void OnParametersSet()
+    {
+        if (FieldType is {Default: var @default, MaxLength: var maxLength})
+        {
+            _default = @default;
+            _maxLength = maxLength.ToString();
+        }
+    }
 
 }

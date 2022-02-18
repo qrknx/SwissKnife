@@ -22,11 +22,24 @@
     private string _min = Int64FieldType.Defaults.Min.ToString();
     private string _max = Int64FieldType.Defaults.Max.ToString();
 
+    [Parameter]
+    public Int64FieldType? FieldType { get; set; }
+
     public FieldDescription GetDescription(FieldKey key, string label) => new(
         key,
         label,
         new Int64FieldType(min: long.Parse(_min),
                            max: long.Parse(_max),
                            @default: long.Parse(_default)));
+
+    protected override void OnParametersSet()
+    {
+        if (FieldType is {Default: var @default, Min: var min, Max: var max })
+        {
+            _default = @default.ToString();
+            _min = min.ToString();
+            _max = max.ToString();
+        }
+    }
 
 }

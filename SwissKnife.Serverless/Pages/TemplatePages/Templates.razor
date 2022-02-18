@@ -26,7 +26,7 @@
 
 @if (_selectedTemplateId != null)
 {
-	<Button Clicked="@(async () => await _addFieldDialog!.Modal.Show())" Color="Color.Secondary">
+	<Button Clicked="@(async () => await _addDialog.ShowAsync(field: null))" Color="Color.Secondary">
 		Add field
 	</Button>
 
@@ -40,46 +40,56 @@
 	<ListGroup>
 		@foreach (FieldDescription field in SelectedTemplate.Schema.Latest.Fields)
 		{
-			<ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center" title="@field">
-				@field.Label
-				<span>
-					@if (CanMove(field, relativeMove: -1, out int upperPosition))
-					{
-						<button @onclick="@(async () => await MoveAsync(field, upperPosition))"
-						        class="border-0 bg-transparent"
-						        title="Move field up">
-							<span class="oi oi-arrow-circle-top text-info" aria-hidden="true"></span>
-						</button>
-					}
+#pragma warning disable CS8321
+		    static string IsEnabledColor(bool yes) => yes ? "text-info" : "text-muted";
+#pragma warning restore CS8321
 
-					@if (CanMove(field, relativeMove: 1, out int lowerPosition))
-					{
-						<button @onclick="@(async () => await MoveAsync(field, lowerPosition))"
-						        class="border-0 bg-transparent"
-						        title="Move field down">
-							<span class="oi oi-arrow-circle-bottom text-info" aria-hidden="true"></span>
-						</button>
-					}
+		    bool canMoveUp = CanMove(field, relativeMove: -1, out int upperPosition);
+		    bool canMoveDown = CanMove(field, relativeMove: 1, out int lowerPosition);
 
-					<button @onclick="@(async () => await RemoveFieldAsync(field))"
-					        class="border-0 bg-transparent"
-					        title="Remove field">
-						<span class="oi oi-circle-x text-danger" aria-hidden="true"></span>
-					</button>
-				</span>
-			</ListGroupItem>
+		    <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center" title="@field">
+                <button @onclick="@(async () => await _editDialog.ShowAsync(field))"
+                        class="flex-grow-1 text-start border-0 bg-transparent"
+                        aria-label="Edit field">
+                    @field.Label
+                </button>
+
+                <span>
+                    <button @onclick="@(async () => await MoveAsync(field, upperPosition))"
+                            class="border-0 bg-transparent"
+                            title="Move field up"
+                            disabled="@(!canMoveUp)">
+                        <span class="oi oi-arrow-circle-top @IsEnabledColor(canMoveUp)" aria-hidden="true"></span>
+                    </button>
+
+                    <button @onclick="@(async () => await MoveAsync(field, lowerPosition))"
+                            class="border-0 bg-transparent"
+                            title="Move field down"
+                            disabled="@(!canMoveDown)">
+                        <span class="oi oi-arrow-circle-bottom @IsEnabledColor(canMoveDown)" aria-hidden="true"></span>
+                    </button>
+
+                    <button @onclick="@(async () => await RemoveFieldAsync(field))"
+                            class="border-0 bg-transparent"
+                            title="Remove field">
+                        <span class="oi oi-circle-x text-danger" aria-hidden="true"></span>
+                    </button>
+                </span>
+            </ListGroupItem>
 		}
 	</ListGroup>
 }
 
-<Templates_AddFieldModal @ref="_addFieldDialog" FieldAdding="@OnFieldAddingAsync" />
+<Templates_ChangeFieldModal @ref="_addDialog" FieldChanging="@OnFieldAddingAsync" />
+<Templates_ChangeFieldModal @ref="_editDialog" FieldChanging="@OnFieldEditingAsync" />
 
 @code {
 
 	private const string Title = "Templates";
 
 	private List<Template>? _templates;
-	private Templates_AddFieldModal? _addFieldDialog;
+	private Templates_ChangeFieldModal _addDialog = null!;
+	private Templates_ChangeFieldModal _editDialog = null!;
 	private string? _selectedTemplateId;
 	private bool _hasChanges;
 
@@ -169,26 +179,38 @@
 		await UpdateHasChangesAsync();
 	}
 
-	private async Task OnFieldAddingAsync(FieldDescription field)
+	private async Task OnFieldAddingAsync((FieldDescription?, FieldDescription New) change)
 	{
-		field = SelectedTemplate.Schema.Latest.Has(field.Key)
-			? field with
-			{
-				Key = field.Key.MakeUnique(SelectedTemplate.Schema.Latest.UnorderedFields.Select(f => f.Key)),
-			}
-			: field;
+	    FieldDescription field = change.New;
 
-		SelectedTemplate = SelectedTemplate with
-		{
-			Schema = SelectedTemplate.Schema
-			                         .ToLatestVersionMutator()
-			                         .AddField(field, preserveVersion: await HasPendingChangesAsync()),
-		};
-		_addFieldDialog!.ResetLabel();
-		await UpdateHasChangesAsync();
+	    await ChangeSelectedTemplateAsync(SelectedTemplate.Schema.Latest.Has(field.Key)
+	                                      ? field with
+                                            {
+                                                Key = field.Key.MakeUnique(SelectedTemplate.Schema
+                                                                                           .Latest
+                                                                                           .UnorderedFields
+                                                                                           .Select(f => f.Key)),
+                                            }
+	                                      : field);
+	    _addDialog.Reset();
+	    await UpdateHasChangesAsync();
 	}
 
-	private async Task UpdateHasChangesAsync()
+    private async Task OnFieldEditingAsync((FieldDescription?, FieldDescription New) change)
+    {
+        await ChangeSelectedTemplateAsync(change.New);
+        await _editDialog.CloseAsync();
+        await UpdateHasChangesAsync();
+    }
+
+    private async Task ChangeSelectedTemplateAsync(FieldDescription field) => SelectedTemplate = SelectedTemplate with
+    {
+        Schema = SelectedTemplate.Schema
+                                 .ToLatestVersionMutator()
+                                 .AddField(field, preserveVersion: await HasPendingChangesAsync()),
+    };
+
+    private async Task UpdateHasChangesAsync()
 	{
 		if (_selectedTemplateId != null)
 		{

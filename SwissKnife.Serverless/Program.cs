@@ -44,8 +44,8 @@ builder.Services
        })
        .AddSingleton(_ => ImmutableList<KnownFieldTypeDescription>.Empty.AddRange(new KnownFieldTypeDescription[]
        {
-           new("String", EditFormType: typeof(CreateStringField), EditValueFormType: typeof(StringValueUI)),
-           new("Int64", EditFormType: typeof(CreateInt64Field), EditValueFormType: typeof(Int64ValueUI)),
+           new("String", EditFormType: typeof(ChangeStringField), EditValueFormType: typeof(StringValueUI)),
+           new("Int64", EditFormType: typeof(ChangeInt64Field), EditValueFormType: typeof(Int64ValueUI)),
        }))
        // Important: see remarks for IRepository
        .AddSingleton<IRepository<Template, string>>(services =>

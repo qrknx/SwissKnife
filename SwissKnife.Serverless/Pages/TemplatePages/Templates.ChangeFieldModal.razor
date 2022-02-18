@@ -1,0 +1,107 @@
+﻿@using System.Text
+@using System.Collections.Immutable
+@using Blazorise;
+@using Classeur.Core.CustomizableStructure
+@using DotNetToolbox
+@using Microsoft.AspNetCore.Components
+@using SwissKnife.Serverless.Templating
+
+@inject ImmutableList<KnownFieldTypeDescription> _fieldTypeDescriptions;
+
+<Modal @ref="_modal">
+	<ModalContent Centered="true">
+		<ModalHeader>
+			<ModalTitle>@Title</ModalTitle>
+			<CloseButton/>
+		</ModalHeader>
+		<ModalBody>
+			<Field>
+				<FieldLabel>Label</FieldLabel>
+				<TextEdit @bind-Text="_label"/>
+			</Field>
+			<Field>
+				<FieldLabel>Type</FieldLabel>
+				<Select @bind-SelectedValue="_selectedIndex">
+					@foreach ((string name, Type editFormType, _) in _fieldTypeDescriptions)
+					{
+						<SelectItem Value="@GetIndex(editFormType)">@name</SelectItem>
+					}
+				</Select>
+			</Field>
+            <DynamicComponent @ref="_form"
+                              Type="_fieldTypeDescriptions[_selectedIndex].EditFormType"
+                              Parameters="GetParameters()" />
+		</ModalBody>
+		<ModalFooter>
+			<Button Color="Color.Primary" Clicked="ChangeFieldAsync">@SubmitTitle</Button>
+		</ModalFooter>
+	</ModalContent>
+</Modal>
+
+@code {
+
+	private Modal _modal = null!;
+	private DynamicComponent _form = null!;
+    private FieldDescription? _field;
+
+	private string _label = "";
+
+	private int _selectedIndex;
+
+    private string Title => _field != null
+        ? "Edit field"
+        : "Add field";
+
+    private string SubmitTitle => _field != null
+        ? "Edit"
+        : "Add";
+
+    [Parameter]
+	public EventCallback<(FieldDescription? Old, FieldDescription New)> FieldChanging { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (_field is { Label: var label, Type: var fieldType })
+        {
+            _label = label;
+            _selectedIndex = GetIndex(fieldType.GetType());
+        }
+    }
+
+    public async Task ShowAsync(FieldDescription? field)
+    {
+        _field = field;
+        await _modal.Show();
+    }
+
+    public void Reset() => _label = "";
+
+    public async Task CloseAsync()
+    {
+        _field = null;
+        Reset();
+        await _modal.Close(CloseReason.UserClosing);
+    }
+
+	private async Task ChangeFieldAsync()
+	{
+		var ui = (IFieldTypeUI)_form.Instance!;
+
+		await FieldChanging.InvokeAsync((_field, ui.GetDescription(_field?.Key ?? FieldKey.For(_label), _label)));
+	}
+
+    private int GetIndex(Type type) => _fieldTypeDescriptions.FindIndex(f =>
+    {
+		return f.EditFormType
+                .FindInterfaces((t, _) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IFieldTypeUI<>),
+                                filterCriteria: null)
+                .Single()
+                .GetGenericArguments()[0] == type;
+    });
+
+    private Dictionary<string, object?> GetParameters() => new()
+    {
+		[nameof(IFieldTypeUI<object>.FieldType)] = _field?.Type,
+    };
+
+}

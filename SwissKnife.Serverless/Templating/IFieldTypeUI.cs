@@ -9,4 +9,5 @@ public interface IFieldTypeUI
 
 public interface IFieldTypeUI<T> : IFieldTypeUI
 {
+    T? FieldType { get; set; }
 }
