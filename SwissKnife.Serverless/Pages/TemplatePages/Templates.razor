@@ -79,7 +79,7 @@
 		{
 			IncoherentId id = IncoherentId.Generate();
 
-			await _repository.InsertAsync(new Template(name,  new StructureSchema(id)), CancellationToken.None);
+			await _repository.InsertAsync(new Template(name, new StructureSchema(id)), CancellationToken.None);
 			_templates = await _repository.GetAllAsync(CancellationToken.None);
 			_selectedTemplateId = id.ToString();
 			_hasChanges = false;
@@ -134,10 +134,10 @@
 	    await ChangeSelectedTemplateAsync(SelectedTemplate.Schema.Latest.Has(field.Key)
 	                                      ? field with
                                             {
-                                                Key = field.Key.MakeUnique(SelectedTemplate.Schema
-                                                                                           .Latest
-                                                                                           .UnorderedFields
-                                                                                           .Select(f => f.Key)),
+                                                Key = field.Key.MakeUniqueAmong(SelectedTemplate.Schema
+                                                                                                .Latest
+                                                                                                .UnorderedFields
+                                                                                                .Select(f => f.Key)),
                                             }
 	                                      : field);
 	    _addDialog.Reset();

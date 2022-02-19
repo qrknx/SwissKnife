@@ -1,5 +1,4 @@
-﻿using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace Classeur.Core.CustomizableStructure;
 
@@ -18,72 +17,53 @@ public readonly record struct FieldKey
 
     public override string ToString() => Name;
 
-    public FieldKey MakeUnique(IEnumerable<FieldKey> other)
+    public FieldKey MakeUniqueAmong(IEnumerable<FieldKey> keys)
     {
-        HashSet<FieldKey> set = other.ToHashSet();
+        HashSet<FieldKey> others = keys.ToHashSet();
 
         int counter = 0;
 
-        FieldKey current = this;
+        FieldKey key = this;
 
-        while (set.Contains(current))
+        while (others.Contains(key))
         {
             ++counter;
 
             string s = counter.ToString();
 
-            int freePlace = MaxLength - (Name.Length + s.Length);
+            int toCut = Math.Max(0, (Name.Length + s.Length) - MaxLength);
 
-            current = new FieldKey(freePlace < 0
-                                       ? $"{Name[..^Math.Abs(freePlace)]}{s}"
-                                       : $"{Name}{s}");
+            key = new FieldKey($"{Name[..^toCut]}{s}");
         }
 
-        return current;
+        return key;
     }
 
     public static FieldKey For(string s)
     {
-        List<List<char>> chunks = new()
-        {
-            new(),
-        };
+        List<char> chars = new(capacity: MaxLength);
 
-        foreach (char c in s)
+        if (char.IsDigit(s[0]))
+        {
+            chars.Add('_');
+        }
+
+        bool lastWasInvalidChar = false;
+
+        foreach (char c in s.TakeWhile(_ => chars.Count < MaxLength))
         {
             if (c == '_' || char.IsLetterOrDigit(c))
             {
-                chunks[^1].Add(char.ToLower(c));
+                chars.Add(char.ToLower(c));
+                lastWasInvalidChar = false;
             }
-            else if (chunks[^1].Any())
+            else if (!lastWasInvalidChar)
             {
-                chunks.Add(new());
+                chars.Add('_');
+                lastWasInvalidChar = true;
             }
         }
 
-        if (!chunks[0].Any())
-        {
-            throw new Exception();
-        }
-
-        if (!chunks[^1].Any())
-        {
-            chunks.RemoveAt(chunks.Count - 1);
-        }
-
-        StringBuilder stringBuilder = new(!char.IsDigit(chunks[0][0]) ? "" : "_",
-                                          capacity: MaxLength);
-
-        AddChunk(stringBuilder, chunks[0]);
-
-        foreach (List<char> chunk in chunks.Skip(1).TakeWhile(_ => stringBuilder.Length < MaxLength - 1))
-        {
-            AddChunk(stringBuilder.Append('_'), chunk);
-        }
-
-        return new FieldKey(stringBuilder.ToString());
+        return new FieldKey(string.Join("", chars));
     }
-
-    private static void AddChunk(StringBuilder sb, IEnumerable<char> chunk)
-        => sb.AppendJoin("", chunk.Take(MaxLength - sb.Length));
 }
